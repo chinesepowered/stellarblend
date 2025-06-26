@@ -3,6 +3,8 @@ import { motion } from 'framer-motion'
 import { Zap, Shield, TrendingUp, Sparkles } from 'lucide-react'
 import type { Position } from '../types'
 import { mockSuggestions } from '../services/mockData'
+import { blendService } from '../services/blendService'
+import { useWallet } from '../hooks/useWallet'
 
 interface OptimizeActionsProps {
   positions: Position[]
@@ -12,29 +14,59 @@ interface OptimizeActionsProps {
 export function OptimizeActions({ positions, onOptimize }: OptimizeActionsProps) {
   const [isOptimizing, setIsOptimizing] = useState(false)
   const [optimizationType, setOptimizationType] = useState<string | null>(null)
+  const { publicKey } = useWallet()
 
   const handleOptimize = async (type: 'yield' | 'safety' | 'leverage') => {
+    if (!publicKey) {
+      console.error('No wallet connected')
+      return
+    }
+
     setIsOptimizing(true)
     setOptimizationType(type)
 
-    await new Promise(resolve => setTimeout(resolve, 2000))
-
-    const optimizedPositions = positions.map(pos => {
-      switch (type) {
-        case 'yield':
-          return { ...pos, apy: pos.apy + Math.random() * 2 }
-        case 'safety':
-          return { ...pos, healthFactor: Math.max(pos.healthFactor + 0.3, 2.0), status: 'healthy' as const }
-        case 'leverage':
-          return { ...pos, totalValue: pos.totalValue * 1.1 }
-        default:
-          return pos
+    try {
+      // Show real transaction building for yield optimization
+      if (type === 'yield' && positions.length > 0) {
+        const position = positions[0] // Use first position as example
+        console.log(`Building real optimization transaction for ${position.asset}`)
+        
+        // This builds a real Blend transaction
+        const transactionXDR = await blendService.buildSupplyTransaction(
+          publicKey,
+          position.id.split('-')[0], // Extract asset address from position ID
+          100 // Demo amount
+        )
+        
+        if (transactionXDR) {
+          console.log('Real Blend transaction built successfully!', transactionXDR)
+          alert('Real Blend transaction built! Check console for XDR. In production, this would be sent to Freighter for signing.')
+        }
       }
-    })
 
-    onOptimize(optimizedPositions)
-    setIsOptimizing(false)
-    setOptimizationType(null)
+      // Simulate optimization after a delay
+      await new Promise(resolve => setTimeout(resolve, 2000))
+
+      const optimizedPositions = positions.map(pos => {
+        switch (type) {
+          case 'yield':
+            return { ...pos, apy: pos.apy + Math.random() * 2 }
+          case 'safety':
+            return { ...pos, healthFactor: Math.max(pos.healthFactor + 0.3, 2.0), status: 'healthy' as const }
+          case 'leverage':
+            return { ...pos, totalValue: pos.totalValue * 1.1 }
+          default:
+            return pos
+        }
+      })
+
+      onOptimize(optimizedPositions)
+    } catch (error) {
+      console.error('Optimization failed:', error)
+    } finally {
+      setIsOptimizing(false)
+      setOptimizationType(null)
+    }
   }
 
   const suggestions = mockSuggestions.slice(0, 3)
