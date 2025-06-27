@@ -45,18 +45,40 @@ export function useWallet() {
   }
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'freighter' in window) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).freighter.isConnected().then((connected: boolean) => {
-        if (connected) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (window as any).freighter.getPublicKey().then((key: string) => {
+    // Check for existing connection when component mounts
+    const checkExistingConnection = async () => {
+      try {
+        // Import the official Freighter API
+        const { isConnected, getAddress } = await import('@stellar/freighter-api')
+        
+        // Check if Freighter is available and already connected
+        const connectionStatus = await isConnected()
+        
+        if (connectionStatus.isConnected) {
+          // Try to get the address (won't prompt if already authorized)
+          const addressResponse = await getAddress()
+          
+          if (!addressResponse.error) {
+            const key = addressResponse.address
             setPublicKey(key)
             setIsConnected(true)
-          })
+            
+            // Load account data if already connected
+            const accountBalances = await stellarService.getAccountBalances(key)
+            setBalances(accountBalances)
+            
+            setIsLoadingPositions(true)
+            const userPositions = await blendService.getUserPositions(key)
+            setPositions(userPositions)
+            setIsLoadingPositions(false)
+          }
         }
-      })
+      } catch (error) {
+        console.log('No existing wallet connection found or Freighter not available')
+      }
     }
+    
+    checkExistingConnection()
   }, [])
 
   return {

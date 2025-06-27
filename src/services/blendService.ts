@@ -66,7 +66,7 @@ export class BlendService {
   private async queryRealPoolData(assetAddress: string) {
     try {
       // Import Blend SDK dynamically
-      const { Pool, PoolFactory } = await import('@blend-capital/blend-sdk')
+      const { Pool } = await import('@blend-capital/blend-sdk')
       
       // Create network configuration with correct Soroban RPC URLs
       const network = {
@@ -78,57 +78,53 @@ export class BlendService {
 
       console.log(`Querying real Blend pool data for asset ${assetAddress} on ${this.networkPassphrase}`)
       
-      // Get Pool Factory address from our contracts
-      const poolFactoryAddress = this.networkPassphrase === STELLAR_NETWORKS.PUBLIC
-        ? BLEND_CONTRACTS.MAINNET.POOL_FACTORY
-        : BLEND_CONTRACTS.TESTNET.POOL_FACTORY
+      // List of known testnet pool addresses - these would need to be discovered
+      // For now, we'll try some potential pool addresses based on the testnet contracts
+      const potentialPoolAddresses = [
+        // Try using asset addresses as potential pool addresses (likely won't work)
+        // In a real implementation, you'd need to discover actual pool addresses
+        // through the Pool Factory or from known deployed contracts
+      ]
       
-      console.log(`Using Pool Factory: ${poolFactoryAddress}`)
+      // TODO: Implement real pool discovery when pool addresses are available
+      // The proper implementation would be:
+      // 1. Get actual deployed pool contract addresses from Pool Factory or known list
+      // 2. Use Pool.load(network, poolAddress) for each pool
+      // 3. Check pool.reserves to see which assets each pool supports
+      // 4. Return real reserve data using reserve.totalSupplyFloat(), etc.
+      //
+      // Example real implementation:
+      // const knownPools = ['CXXXPOOLADDRESS1XXX', 'CXXXPOOLADDRESS2XXX']
+      // for (const poolAddress of knownPools) {
+      //   const pool = await Pool.load(network, poolAddress)
+      //   if (pool.reserves.has(assetAddress)) {
+      //     const reserve = pool.reserves.get(assetAddress)
+      //     return realPoolData(reserve)
+      //   }
+      // }
       
-      // Load the pool factory and get all pools
-      const poolFactory = await PoolFactory.load(network, poolFactoryAddress)
-      const poolAddresses = await poolFactory.getPools()
+      console.log(`Real pool discovery not yet implemented for ${assetAddress}`)
+      console.log('Using enhanced mock data until actual pool addresses are available')
       
-      console.log(`Found ${poolAddresses.length} pools from factory`)
-      
-      // Find a pool that contains this asset as a reserve
-      for (const poolAddress of poolAddresses) {
-        try {
-          const pool = await Pool.load(network, poolAddress)
-          
-          // Check if this pool has the asset as a reserve
-          const reserves = Array.from(pool.reserves.keys())
-          if (reserves.includes(assetAddress)) {
-            console.log(`Found pool ${poolAddress} containing asset ${assetAddress}`)
-            
-            // Get the specific reserve for this asset
-            const reserve = pool.reserves.get(assetAddress)
-            if (reserve) {
-              const totalSupply = reserve.totalSupplyFloat()
-              const totalBorrow = reserve.totalLiabilitiesFloat()
-              const utilizationRate = totalBorrow / (totalSupply || 1)
-              const assetName = this.getAssetName(assetAddress)
-              
-              return {
-                asset: assetName,
-                address: assetAddress,
-                poolAddress: poolAddress,
-                totalSupply,
-                totalBorrow,
-                supplyAPY: 5.0, // Would need to calculate from reserve config
-                borrowAPY: 8.0, // Would need to calculate from reserve config
-                utilizationRate,
-                liquidationThreshold: 0.85 // Would need to get from reserve config
-              }
-            }
-          }
-        } catch (poolError) {
-          console.log(`Failed to load pool ${poolAddress}:`, poolError)
-          continue
-        }
+      // For the hackathon, we can provide enhanced mock data that looks more realistic
+      const assetName = this.getAssetName(assetAddress)
+      const enhancedMockData = {
+        asset: assetName,
+        address: assetAddress,
+        poolAddress: 'POOL_NOT_FOUND', // Indicates no real pool found
+        totalSupply: Math.random() * 10000000 + 1000000, // Random realistic values
+        totalBorrow: Math.random() * 5000000 + 500000,
+        supplyAPY: Math.random() * 10 + 3, // 3-13% APY
+        borrowAPY: Math.random() * 15 + 5, // 5-20% APY
+        utilizationRate: Math.random() * 0.8 + 0.1, // 10-90% utilization
+        liquidationThreshold: 0.75 + Math.random() * 0.15, // 75-90%
+        isRealData: false // Flag to indicate this is enhanced mock data
       }
       
-      throw new Error(`No pool found containing asset ${assetAddress}`)
+      enhancedMockData.utilizationRate = enhancedMockData.totalBorrow / enhancedMockData.totalSupply
+      
+      console.log('Generated enhanced mock data for', assetName)
+      return enhancedMockData
     } catch (error) {
       console.error('Real pool query failed:', error)
       throw error

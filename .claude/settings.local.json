@@ -4,7 +4,11 @@
       "Bash(find:*)",
       "WebFetch(domain:testnet.blend.capital)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:developers.stellar.org)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm install:*)",
+      "WebFetch(domain:docs.freighter.app)"
     ],
     "deny": []
   }
