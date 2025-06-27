@@ -2,12 +2,7 @@ import { Wallet, Power, AlertCircle } from 'lucide-react'
 import { useWallet } from '../hooks/useWallet'
 import { useState } from 'react'
 
-interface WalletConnectProps {
-  isConnected: boolean
-  onConnect: (connected: boolean) => void
-}
-
-export function WalletConnect({ onConnect }: WalletConnectProps) {
+export function WalletConnect() {
   const { isConnected, isConnecting, publicKey, connect, disconnect } = useWallet()
   const [error, setError] = useState<string | null>(null)
 
@@ -15,7 +10,6 @@ export function WalletConnect({ onConnect }: WalletConnectProps) {
     try {
       setError(null)
       await connect()
-      onConnect(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect wallet')
     }
@@ -23,7 +17,6 @@ export function WalletConnect({ onConnect }: WalletConnectProps) {
 
   const handleDisconnect = () => {
     disconnect()
-    onConnect(false)
     setError(null)
   }
 

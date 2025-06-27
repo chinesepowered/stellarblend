@@ -26,21 +26,55 @@ export function OptimizeActions({ positions, onOptimize }: OptimizeActionsProps)
     setOptimizationType(type)
 
     try {
-      // Show real transaction building for yield optimization
-      if (type === 'yield' && positions.length > 0) {
+      // Show real transaction building for optimization
+      if (positions.length > 0) {
         const position = positions[0] // Use first position as example
-        console.log(`Building real optimization transaction for ${position.asset}`)
+        console.log(`🔨 Building real ${type} optimization transaction for ${position.asset}`)
         
-        // This builds a real Blend transaction
-        const transactionXDR = await blendService.buildSupplyTransaction(
-          publicKey,
-          position.id.split('-')[0], // Extract asset address from position ID
-          100 // Demo amount
-        )
-        
-        if (transactionXDR) {
-          console.log('Real Blend transaction built successfully!', transactionXDR)
-          alert('Real Blend transaction built! Check console for XDR. In production, this would be sent to Freighter for signing.')
+        try {
+          let transactionXDR = null
+          
+          switch (type) {
+            case 'yield':
+              // Build a supply transaction to increase yield
+              transactionXDR = await blendService.buildSupplyTransaction(
+                publicKey,
+                position.address, // Use the actual asset address
+                position.amount * 0.1 // Add 10% more supply
+              )
+              break
+              
+            case 'safety':
+              // Build a supply transaction to add collateral for safety
+              transactionXDR = await blendService.buildSupplyTransaction(
+                publicKey,
+                position.address,
+                position.amount * 0.05 // Add 5% more collateral
+              )
+              break
+              
+            case 'leverage':
+              // Build a borrow transaction for leverage
+              transactionXDR = await blendService.buildBorrowTransaction(
+                publicKey,
+                position.address,
+                position.amount * 0.2 // Borrow 20% for leverage
+              )
+              break
+          }
+          
+          if (transactionXDR) {
+            console.log(`✅ Real Blend ${type} transaction built successfully!`)
+            console.log('📋 Transaction XDR:', transactionXDR)
+            
+            // Show success message with more detail
+            const message = `🚀 Real Blend Transaction Built!\n\nType: ${type.charAt(0).toUpperCase() + type.slice(1)} optimization\nAsset: ${position.asset}\nAmount: ${type === 'leverage' ? position.amount * 0.2 : position.amount * 0.1}\n\n✨ This is a real Stellar transaction that could be signed with Freighter!\n\nCheck console for full XDR details.`
+            alert(message)
+          } else {
+            console.log('⚠️ Transaction building returned null - using simulation')
+          }
+        } catch (txError) {
+          console.log('⚠️ Real transaction failed, using simulation:', txError)
         }
       }
 
