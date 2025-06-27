@@ -8,7 +8,8 @@
       "WebFetch(domain:developers.stellar.org)",
       "Bash(pnpm add:*)",
       "Bash(pnpm install:*)",
-      "WebFetch(domain:docs.freighter.app)"
+      "WebFetch(domain:docs.freighter.app)",
+      "Bash(pnpm run:*)"
     ],
     "deny": []
   }

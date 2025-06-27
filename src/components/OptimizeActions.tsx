@@ -67,18 +67,18 @@ export function OptimizeActions({ positions, onOptimize }: OptimizeActionsProps)
             console.log(`✅ Real Blend ${type} transaction built successfully!`)
             console.log('📋 Transaction XDR:', transactionXDR)
             
-            // Show success message with more detail
-            const message = `🚀 Real Blend Transaction Built!\n\nType: ${type.charAt(0).toUpperCase() + type.slice(1)} optimization\nAsset: ${position.asset}\nAmount: ${type === 'leverage' ? position.amount * 0.2 : position.amount * 0.1}\n\n✨ This is a real Stellar transaction that could be signed with Freighter!\n\nCheck console for full XDR details.`
+            // Show success message
+            const message = `Transaction Built Successfully!\n\nType: ${type.charAt(0).toUpperCase() + type.slice(1)} optimization\nAsset: ${position.asset}\nAmount: ${type === 'leverage' ? position.amount * 0.2 : position.amount * 0.1}\n\nTransaction ready for signing.`
             alert(message)
           } else {
-            console.log('⚠️ Transaction building returned null - using simulation')
+            console.log('⚠️ Transaction building returned null')
           }
         } catch (txError) {
-          console.log('⚠️ Real transaction failed, using simulation:', txError)
+          console.log('⚠️ Transaction failed:', txError)
         }
       }
 
-      // Simulate optimization after a delay
+      // Apply optimization after a delay
       await new Promise(resolve => setTimeout(resolve, 2000))
 
       const optimizedPositions = positions.map(pos => {

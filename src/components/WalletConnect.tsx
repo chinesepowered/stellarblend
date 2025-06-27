@@ -1,22 +1,23 @@
-import { Wallet, Power } from 'lucide-react'
+import { Wallet, Power, AlertCircle } from 'lucide-react'
 import { useWallet } from '../hooks/useWallet'
+import { useState } from 'react'
 
-interface WalletConnectProps {
-  isConnected: boolean
-  onConnect: (connected: boolean) => void
-}
-
-export function WalletConnect({ onConnect }: WalletConnectProps) {
+export function WalletConnect() {
   const { isConnected, isConnecting, publicKey, connect, disconnect } = useWallet()
+  const [error, setError] = useState<string | null>(null)
 
   const handleConnect = async () => {
-    await connect()
-    onConnect(true)
+    try {
+      setError(null)
+      await connect()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to connect wallet')
+    }
   }
 
   const handleDisconnect = () => {
     disconnect()
-    onConnect(false)
+    setError(null)
   }
 
   if (isConnected) {
@@ -40,13 +41,22 @@ export function WalletConnect({ onConnect }: WalletConnectProps) {
   }
 
   return (
-    <button
-      onClick={handleConnect}
-      disabled={isConnecting}
-      className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      <Wallet className="w-4 h-4" />
-      <span>{isConnecting ? 'Connecting...' : 'Connect Freighter Wallet'}</span>
-    </button>
+    <div className="flex flex-col items-end space-y-2">
+      <button
+        onClick={handleConnect}
+        disabled={isConnecting}
+        className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <Wallet className="w-4 h-4" />
+        <span>{isConnecting ? 'Connecting...' : 'Connect Freighter'}</span>
+      </button>
+      
+      {error && (
+        <div className="flex items-center space-x-1 text-xs text-red-600 bg-red-50 px-2 py-1 rounded max-w-xs">
+          <AlertCircle className="w-3 h-3" />
+          <span>{error}</span>
+        </div>
+      )}
+    </div>
   )
 }
