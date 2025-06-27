@@ -6,7 +6,7 @@ const STELLAR_NETWORKS = {
   TESTNET: 'Test SDF Network ; September 2015'
 }
 
-// Real Blend contract addresses
+// Real Blend contract addresses - updated with correct testnet addresses
 export const BLEND_CONTRACTS = {
   MAINNET: {
     POOL_FACTORY: 'CCZD6ESMOGMPWH2KRO4O7RGTAPGTUPFWFQBELQSS7ZUK63V3TZWETGAG',
@@ -19,15 +19,17 @@ export const BLEND_CONTRACTS = {
     COMET: 'CAS3FL6TLZKDGGSISDBWGGPXT3NRR4DYTZD7YOD3HMYO6LTJUVGRVEAM'
   },
   TESTNET: {
-    POOL_FACTORY: 'CDEVVU3G2CFH6LJQG6LLSCSIU2DJGQYBSQPVCJGM2KDXVK2TDIBUPCGGQ',
+    // Updated with addresses from blend-utils testnet.contracts.json
+    POOL_FACTORY: 'CDIE73IJJKOWXWCPU5GWQ745FUKWCSH3YKZRF5IQW7GE3G7YAZ773MYK', // Pool Factory V2
+    BACKSTOP: 'CC4TSDVQKBAYMK4BEDM65CSNB3ISI2A54OOBRO6IPSTFHJY3DEEKHRKV', // Backstop V2
     EMITTER: 'CBKGB24EGKHUS3755GU6IC5YFNDAGCRCGYAONM3HKES2223TIHKQ4QBZ',
     BLND_TOKEN: 'CB22KRA3YZVCNCQI64JQ5WE7UY2VAV7WFLK6A2JN3HEX56T2EDAFO7QF',
     USDC_TOKEN: 'CAQCFVLOBK5GIULPNZRGATJJMIZL5BSP7X5YJVMGCPTUEPFM4AVSRCJU',
     XLM_TOKEN: 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC',
     WETH_TOKEN: 'CAZAQB3D7KSLSNOSQKYD2V4JP5V2Y3B4RDJZRLBFCCIXDCTE3WHSY3UE',
     WBTC_TOKEN: 'CAP5AMC2OHNVREO66DFIN6DHJMPOBAJ2KCDDIMFBR7WWJH5RZBFM3UEI',
-    COMET_FACTORY: 'CCJP2SLZ5U6CAYBKP3K64WAVALZGNEKHGMDQHX5TZYC6P26LNXQJIVMM',
-    COMET: 'CAUNY2U7AC7M2UQKN7JSCYQ7JV7A3BHEJWPV6PLURVF7YGNUA6GCGSAQ',
+    COMET_FACTORY: 'CD7E4SS4ZIY2JDEZP3PTWAIBBWMRG2NNFFXKHC7FCW43ZWTSI2KJYG5P',
+    COMET: 'CAVWKK4WB7SWLKI7VBPPGP6KNUKLUAWQIHE44V7G7MYOG4K23PW2PXKJ',
     ORACLE_MOCK: 'CBJSXNC2PL5LRMGWBOJVCWZFRNFPQXX4JWCUPSGEVZELZDNSEOM7Q6IQ'
   }
 }
@@ -52,7 +54,7 @@ export class BlendService {
 
   async getPoolInfo(assetAddress: string) {
     try {
-      // Use real Blend SDK to query pool data
+      // Try to get real pool data using the asset address
       return await this.queryRealPoolData(assetAddress)
     } catch (error) {
       console.error('Failed to get real pool info, falling back to mock:', error)
@@ -63,10 +65,10 @@ export class BlendService {
 
   private async queryRealPoolData(assetAddress: string) {
     try {
-      // Import Blend SDK dynamically to avoid build issues
-      const { Pool } = await import('@blend-capital/blend-sdk')
+      // Import Blend SDK dynamically
+      const { Pool, PoolFactory } = await import('@blend-capital/blend-sdk')
       
-      // Create network configuration
+      // Create network configuration with correct Soroban RPC URLs
       const network = {
         rpc: this.networkPassphrase === STELLAR_NETWORKS.PUBLIC
           ? 'https://soroban-rpc.mainnet.stellar.gateway.fm'
@@ -74,36 +76,59 @@ export class BlendService {
         passphrase: this.networkPassphrase
       }
 
-      console.log(`Querying real Blend pool data for ${assetAddress} on ${this.networkPassphrase}`)
+      console.log(`Querying real Blend pool data for asset ${assetAddress} on ${this.networkPassphrase}`)
       
-      // Get pool data using Blend SDK
-      const pool = await Pool.load(network, assetAddress)
+      // Get Pool Factory address from our contracts
+      const poolFactoryAddress = this.networkPassphrase === STELLAR_NETWORKS.PUBLIC
+        ? BLEND_CONTRACTS.MAINNET.POOL_FACTORY
+        : BLEND_CONTRACTS.TESTNET.POOL_FACTORY
       
-      // Calculate basic stats from reserves
-      let totalSupply = 0
-      let totalBorrow = 0
-      let supplyAPY = 5.0 // Default values
-      let borrowAPY = 8.0
+      console.log(`Using Pool Factory: ${poolFactoryAddress}`)
       
-      // Sum up all reserves in the pool
-      for (const [_, reserve] of pool.reserves) {
-        totalSupply += reserve.totalSupplyFloat()
-        totalBorrow += reserve.totalLiabilitiesFloat()
+      // Load the pool factory and get all pools
+      const poolFactory = await PoolFactory.load(network, poolFactoryAddress)
+      const poolAddresses = await poolFactory.getPools()
+      
+      console.log(`Found ${poolAddresses.length} pools from factory`)
+      
+      // Find a pool that contains this asset as a reserve
+      for (const poolAddress of poolAddresses) {
+        try {
+          const pool = await Pool.load(network, poolAddress)
+          
+          // Check if this pool has the asset as a reserve
+          const reserves = Array.from(pool.reserves.keys())
+          if (reserves.includes(assetAddress)) {
+            console.log(`Found pool ${poolAddress} containing asset ${assetAddress}`)
+            
+            // Get the specific reserve for this asset
+            const reserve = pool.reserves.get(assetAddress)
+            if (reserve) {
+              const totalSupply = reserve.totalSupplyFloat()
+              const totalBorrow = reserve.totalLiabilitiesFloat()
+              const utilizationRate = totalBorrow / (totalSupply || 1)
+              const assetName = this.getAssetName(assetAddress)
+              
+              return {
+                asset: assetName,
+                address: assetAddress,
+                poolAddress: poolAddress,
+                totalSupply,
+                totalBorrow,
+                supplyAPY: 5.0, // Would need to calculate from reserve config
+                borrowAPY: 8.0, // Would need to calculate from reserve config
+                utilizationRate,
+                liquidationThreshold: 0.85 // Would need to get from reserve config
+              }
+            }
+          }
+        } catch (poolError) {
+          console.log(`Failed to load pool ${poolAddress}:`, poolError)
+          continue
+        }
       }
       
-      const utilizationRate = totalBorrow / (totalSupply || 1)
-      const assetName = this.getAssetName(assetAddress)
-      
-      return {
-        asset: assetName,
-        address: assetAddress,
-        totalSupply,
-        totalBorrow,
-        supplyAPY,
-        borrowAPY,
-        utilizationRate,
-        liquidationThreshold: 0.85 // Default, would need to query from config
-      }
+      throw new Error(`No pool found containing asset ${assetAddress}`)
     } catch (error) {
       console.error('Real pool query failed:', error)
       throw error
@@ -184,11 +209,11 @@ export class BlendService {
 
   async getUserPositions(publicKey: string): Promise<Position[]> {
     try {
-      // Try to get real positions first
-      return await this.queryRealUserPositions(publicKey)
+      // For now, use generated positions instead of real queries
+      console.log(`Generating mock positions for ${publicKey}`)
+      return this.getGeneratedPositions(publicKey)
     } catch (error) {
-      console.error('Failed to get real user positions, falling back to generated:', error)
-      // Fallback to generated positions
+      console.error('Failed to get user positions:', error)
       return this.getGeneratedPositions(publicKey)
     }
   }
