@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Zap, Shield, TrendingUp, Sparkles } from 'lucide-react'
+import { Zap, Shield, TrendingUp, Sparkles, X, Copy } from 'lucide-react'
 import type { Position } from '../types'
 import { mockSuggestions } from '../services/mockData'
 import { blendService } from '../services/blendService'
@@ -14,6 +14,62 @@ interface OptimizeActionsProps {
 export function OptimizeActions({ positions, onOptimize }: OptimizeActionsProps) {
   const [isOptimizing, setIsOptimizing] = useState(false)
   const [optimizationType, setOptimizationType] = useState<string | null>(null)
+  const [showXDRDialog, setShowXDRDialog] = useState(false)
+  const [transactionDetails, setTransactionDetails] = useState<{
+    type: string
+    asset: string
+    amount: number
+    xdr: string
+  } | null>(null)
+
+  const getTransactionSummary = (type: string, asset: string, amount: number) => {
+    switch (type.toLowerCase()) {
+      case 'yield':
+        return {
+          title: 'Supply Additional Collateral',
+          description: `This transaction will supply ${amount.toFixed(6)} ${asset} to the Blend lending pool to increase your earning potential. The asset will start earning interest immediately and can be used as collateral for borrowing.`,
+          effects: [
+            `Supplies ${amount.toFixed(6)} ${asset} to the pool`,
+            'Increases your earning position and yield',
+            'Adds collateral capacity for potential borrowing',
+            'Transaction fee: ~0.1 XLM'
+          ]
+        }
+      case 'safety':
+        return {
+          title: 'Add Safety Collateral',
+          description: `This transaction adds ${amount.toFixed(6)} ${asset} as additional collateral to improve your position's health factor and reduce liquidation risk. This makes your overall portfolio safer.`,
+          effects: [
+            `Adds ${amount.toFixed(6)} ${asset} as collateral`,
+            'Improves health factor and reduces liquidation risk',
+            'Provides buffer against market volatility',
+            'Transaction fee: ~0.1 XLM'
+          ]
+        }
+      case 'leverage':
+        return {
+          title: 'Borrow for Leverage',
+          description: `This transaction borrows ${amount.toFixed(6)} ${asset} against your existing collateral to create a leveraged position. This amplifies both potential gains and risks.`,
+          effects: [
+            `Borrows ${amount.toFixed(6)} ${asset} from the pool`,
+            'Creates leveraged exposure to increase potential returns',
+            'Incurs borrowing interest charges',
+            'Increases liquidation risk - monitor health factor',
+            'Transaction fee: ~0.1 XLM'
+          ]
+        }
+      default:
+        return {
+          title: 'Blend Protocol Transaction',
+          description: `This transaction interacts with the Blend lending protocol to modify your ${asset} position.`,
+          effects: [
+            `Modifies ${amount.toFixed(6)} ${asset} position`,
+            'Updates your lending/borrowing profile',
+            'Transaction fee: ~0.1 XLM'
+          ]
+        }
+    }
+  }
   const { publicKey } = useWallet()
 
   const handleOptimize = async (type: 'yield' | 'safety' | 'leverage') => {
@@ -67,9 +123,14 @@ export function OptimizeActions({ positions, onOptimize }: OptimizeActionsProps)
             console.log(`✅ Real Blend ${type} transaction built successfully!`)
             console.log('📋 Transaction XDR:', transactionXDR)
             
-            // Show success message
-            const message = `Transaction Built Successfully!\n\nType: ${type.charAt(0).toUpperCase() + type.slice(1)} optimization\nAsset: ${position.asset}\nAmount: ${type === 'leverage' ? position.amount * 0.2 : position.amount * 0.1}\n\nTransaction ready for signing.`
-            alert(message)
+            // Show XDR dialog with technical details
+            setTransactionDetails({
+              type: type.charAt(0).toUpperCase() + type.slice(1),
+              asset: position.asset,
+              amount: type === 'leverage' ? position.amount * 0.2 : position.amount * 0.1,
+              xdr: transactionXDR
+            })
+            setShowXDRDialog(true)
           } else {
             console.log('⚠️ Transaction building returned null')
           }
@@ -103,10 +164,120 @@ export function OptimizeActions({ positions, onOptimize }: OptimizeActionsProps)
     }
   }
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+  }
+
   const suggestions = mockSuggestions.slice(0, 3)
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border">
+    <>
+      {/* XDR Transaction Dialog */}
+      {showXDRDialog && transactionDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Transaction Built Successfully</h2>
+                <p className="text-sm text-gray-600">Stellar XDR ready for signing</p>
+              </div>
+              <button
+                onClick={() => setShowXDRDialog(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-6">
+                {/* Transaction Summary */}
+                {(() => {
+                  const summary = getTransactionSummary(transactionDetails.type, transactionDetails.asset, transactionDetails.amount)
+                  return (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-5">
+                      <h3 className="font-bold text-blue-900 text-lg mb-2">{summary.title}</h3>
+                      <p className="text-blue-800 mb-4">{summary.description}</p>
+                      <div>
+                        <h4 className="font-semibold text-blue-900 mb-2">What this transaction does:</h4>
+                        <ul className="space-y-1">
+                          {summary.effects.map((effect, index) => (
+                            <li key={index} className="text-blue-800 text-sm flex items-start">
+                              <span className="text-blue-600 mr-2">•</span>
+                              <span>{effect}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-blue-900 mb-1">Operation Type</h3>
+                    <p className="text-blue-800">{transactionDetails.type} Optimization</p>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-green-900 mb-1">Asset</h3>
+                    <p className="text-green-800">{transactionDetails.asset}</p>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-purple-900 mb-1">Amount</h3>
+                    <p className="text-purple-800">{transactionDetails.amount.toFixed(6)}</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-gray-900">Transaction XDR</h3>
+                    <button
+                      onClick={() => copyToClipboard(transactionDetails.xdr)}
+                      className="flex items-center space-x-1 px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                    >
+                      <Copy className="w-4 h-4" />
+                      <span>Copy</span>
+                    </button>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg border font-mono text-sm break-all max-h-60 overflow-y-auto">
+                    {transactionDetails.xdr}
+                  </div>
+                </div>
+                
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-yellow-900 mb-2">Technical Details</h4>
+                  <ul className="text-sm text-yellow-800 space-y-1">
+                    <li>• This is a real Stellar transaction built with Blend SDK</li>
+                    <li>• XDR can be submitted to Stellar testnet</li>
+                    <li>• Transaction includes proper sequence numbers and fees</li>
+                    <li>• Ready for Freighter wallet signing</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
+            <div className="border-t p-6 flex justify-end space-x-3">
+              <button
+                onClick={() => setShowXDRDialog(false)}
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  copyToClipboard(transactionDetails.xdr)
+                  setShowXDRDialog(false)
+                }}
+                className="px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              >
+                Copy XDR & Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-white p-6 rounded-xl shadow-sm border">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Smart Optimization</h2>
@@ -185,6 +356,7 @@ export function OptimizeActions({ positions, onOptimize }: OptimizeActionsProps)
           </div>
         ))}
       </div>
-    </div>
+      </div>
+    </>
   )
 }

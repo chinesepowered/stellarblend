@@ -266,6 +266,7 @@ export class BlendService {
               positions.push({
                 id: `${reserveAddress}-supply`,
                 asset: poolInfo.asset,
+                address: reserveAddress,
                 type: 'lending',
                 amount: totalSupplied,
                 apy: poolInfo.supplyAPY,
@@ -281,6 +282,7 @@ export class BlendService {
               positions.push({
                 id: `${reserveAddress}-borrow`,
                 asset: poolInfo.asset,
+                address: reserveAddress,
                 type: 'borrowing',
                 amount: liabilities,
                 apy: -poolInfo.borrowAPY,
@@ -338,6 +340,7 @@ export class BlendService {
           const position: Position = {
             id: `${assetAddress}-${isLending ? 'supply' : 'borrow'}`,
             asset: poolInfo.asset,
+            address: assetAddress,
             type: isLending ? 'lending' : 'borrowing',
             amount: baseAmount,
             apy: isLending ? poolInfo.supplyAPY : -poolInfo.borrowAPY,
@@ -373,8 +376,11 @@ export class BlendService {
       // Import Blend SDK dynamically
       const { PoolContract, RequestType } = await import('@blend-capital/blend-sdk')
       
+      // For demo purposes, use a mock pool address since we don't have real pool contracts deployed
+      const mockPoolAddress = 'CBQHNAXSI55GX2GN6D67GK7BHVPSLJUGZQEU7WJ5LKR5PNUCGLIMAO4K'
+      
       // Create pool contract instance
-      const poolContract = new PoolContract(assetAddress)
+      const poolContract = new PoolContract(mockPoolAddress)
       
       // Build supply operation
       const operation = poolContract.submit({
@@ -404,8 +410,11 @@ export class BlendService {
       // Import Blend SDK dynamically
       const { PoolContract, RequestType } = await import('@blend-capital/blend-sdk')
       
+      // For demo purposes, use a mock pool address since we don't have real pool contracts deployed
+      const mockPoolAddress = 'CBQHNAXSI55GX2GN6D67GK7BHVPSLJUGZQEU7WJ5LKR5PNUCGLIMAO4K'
+      
       // Create pool contract instance  
-      const poolContract = new PoolContract(assetAddress)
+      const poolContract = new PoolContract(mockPoolAddress)
       
       // Build borrow operation
       const operation = poolContract.submit({

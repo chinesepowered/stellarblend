@@ -1,6 +1,7 @@
 export interface Position {
   id: string
   asset: string
+  address: string
   type: 'lending' | 'borrowing'
   amount: number
   apy: number
