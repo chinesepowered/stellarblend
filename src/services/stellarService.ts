@@ -241,6 +241,78 @@ export class StellarService {
       return false
     }
   }
+
+  async signAndSubmitTransaction(xdr: string): Promise<{ success: boolean; result?: any; error?: string }> {
+    try {
+      console.log('🔐 Signing transaction with Freighter...')
+      
+      // Import the Freighter API
+      const { signTransaction } = await import('@stellar/freighter-api')
+      
+      // Sign the transaction XDR
+      const signedResponse = await signTransaction(xdr, {
+        networkPassphrase: this.networkPassphrase
+      })
+      
+      if (signedResponse.error) {
+        throw new Error(`Failed to sign transaction: ${signedResponse.error}`)
+      }
+      
+      const signedXDR = signedResponse.signedTxXdr
+      console.log('✅ Transaction signed successfully!')
+      console.log('📋 Signed XDR:', signedXDR)
+      
+      // Submit to Stellar network
+      console.log('🚀 Submitting transaction to Stellar network...')
+      
+      const { Horizon, TransactionBuilder } = await import('@stellar/stellar-sdk')
+      
+      // Create server instance  
+      const server = new Horizon.Server(
+        this.networkPassphrase === 'Public Global Stellar Network ; September 2015'
+          ? 'https://horizon.stellar.org'
+          : 'https://horizon-testnet.stellar.org'
+      )
+      
+      // Build transaction from signed XDR
+      const transaction = TransactionBuilder.fromXDR(signedXDR, this.networkPassphrase)
+      
+      // Submit transaction
+      const result = await server.submitTransaction(transaction)
+      
+      console.log('🎉 Transaction submitted successfully!')
+      console.log('📊 Transaction result:', result)
+      
+      return {
+        success: true,
+        result: {
+          hash: result.hash,
+          ledger: result.ledger,
+          signedXDR
+        }
+      }
+      
+    } catch (error) {
+      console.error('❌ Transaction failed:', error)
+      
+      let errorMessage = 'Unknown error occurred'
+      if (error instanceof Error) {
+        errorMessage = error.message
+      }
+      
+      // Handle specific error cases
+      if (errorMessage.includes('User declined') || errorMessage.includes('cancelled')) {
+        errorMessage = 'Transaction cancelled by user'
+      } else if (errorMessage.includes('not found') || errorMessage.includes('not available')) {
+        errorMessage = 'Freighter wallet not found or not connected'
+      }
+      
+      return {
+        success: false,
+        error: errorMessage
+      }
+    }
+  }
 }
 
 export const stellarService = new StellarService()

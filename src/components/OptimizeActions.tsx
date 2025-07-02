@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Zap, Shield, TrendingUp, Sparkles, X, Copy } from 'lucide-react'
+import { Zap, Shield, TrendingUp, Sparkles, X, Copy, Signature } from 'lucide-react'
 import type { Position } from '../types'
 import { mockSuggestions } from '../services/mockData'
 import { blendService } from '../services/blendService'
+import { stellarService } from '../services/stellarService'
 import { useWallet } from '../hooks/useWallet'
 
 interface OptimizeActionsProps {
@@ -15,6 +16,7 @@ export function OptimizeActions({ positions, onOptimize }: OptimizeActionsProps)
   const [isOptimizing, setIsOptimizing] = useState(false)
   const [optimizationType, setOptimizationType] = useState<string | null>(null)
   const [showXDRDialog, setShowXDRDialog] = useState(false)
+  const [isSigningTransaction, setIsSigningTransaction] = useState(false)
   const [transactionDetails, setTransactionDetails] = useState<{
     type: string
     asset: string
@@ -168,6 +170,47 @@ export function OptimizeActions({ positions, onOptimize }: OptimizeActionsProps)
     navigator.clipboard.writeText(text)
   }
 
+  const handleSignTransaction = async () => {
+    if (!transactionDetails) {
+      console.error('No transaction details available')
+      return
+    }
+
+    setIsSigningTransaction(true)
+    
+    try {
+      console.log('🚀 Starting transaction signing process...')
+      
+      const result = await stellarService.signAndSubmitTransaction(transactionDetails.xdr)
+      
+      if (result.success) {
+        console.log('🎉 Transaction successfully signed and submitted!')
+        console.log('Transaction hash:', result.result?.hash)
+        console.log('Ledger:', result.result?.ledger)
+        
+        // Show success message
+        alert(`🎉 Transaction Successful!\n\nHash: ${result.result?.hash}\nLedger: ${result.result?.ledger}\n\nYour Blend position has been updated!`)
+        
+        // Close the dialog
+        setShowXDRDialog(false)
+        setTransactionDetails(null)
+        
+        // You could trigger a refresh of positions here if needed
+        // For now, we'll keep the optimized state from the mock optimization
+        
+      } else {
+        console.error('❌ Transaction failed:', result.error)
+        alert(`❌ Transaction Failed\n\n${result.error}\n\nPlease try again or contact support if the issue persists.`)
+      }
+      
+    } catch (error) {
+      console.error('❌ Unexpected error during signing:', error)
+      alert('❌ Unexpected Error\n\nSomething went wrong while signing the transaction. Please try again.')
+    } finally {
+      setIsSigningTransaction(false)
+    }
+  }
+
   const suggestions = mockSuggestions.slice(0, 3)
 
   return (
@@ -178,8 +221,8 @@ export function OptimizeActions({ positions, onOptimize }: OptimizeActionsProps)
           <div className="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between p-6 border-b">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Transaction Built Successfully</h2>
-                <p className="text-sm text-gray-600">Stellar XDR ready for signing</p>
+                <h2 className="text-xl font-bold text-gray-900">Transaction Ready</h2>
+                <p className="text-sm text-gray-600">Review and sign with Freighter, or copy XDR for manual signing</p>
               </div>
               <button
                 onClick={() => setShowXDRDialog(false)}
@@ -256,22 +299,36 @@ export function OptimizeActions({ positions, onOptimize }: OptimizeActionsProps)
               </div>
             </div>
             
-            <div className="border-t p-6 flex justify-end space-x-3">
-              <button
-                onClick={() => setShowXDRDialog(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => {
-                  copyToClipboard(transactionDetails.xdr)
-                  setShowXDRDialog(false)
-                }}
-                className="px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-              >
-                Copy XDR & Close
-              </button>
+            <div className="border-t p-6 flex justify-between items-center">
+              <div className="text-sm text-gray-600">
+                Choose to sign with Freighter for real transactions, or copy XDR for manual signing
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowXDRDialog(false)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    copyToClipboard(transactionDetails.xdr)
+                    setShowXDRDialog(false)
+                  }}
+                  className="px-4 py-2 text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors flex items-center space-x-2"
+                >
+                  <Copy className="w-4 h-4" />
+                  <span>Copy XDR</span>
+                </button>
+                <button
+                  onClick={handleSignTransaction}
+                  disabled={isSigningTransaction}
+                  className="px-6 py-2 text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center space-x-2"
+                >
+                  <Signature className="w-4 h-4" />
+                  <span>{isSigningTransaction ? 'Signing...' : 'Sign with Freighter'}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

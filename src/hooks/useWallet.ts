@@ -10,6 +10,14 @@ export function useWallet() {
   const [balances, setBalances] = useState<Array<{ asset: string; balance: number; limit: number | null }>>([])
   const [positions, setPositions] = useState<Position[]>([])
   const [isLoadingPositions, setIsLoadingPositions] = useState(false)
+  const [hasManuallyDisconnected, setHasManuallyDisconnected] = useState(() => {
+    // Check localStorage for manual disconnect flag
+    try {
+      return localStorage.getItem('wallet-manually-disconnected') === 'true'
+    } catch {
+      return false
+    }
+  })
 
   const connect = async () => {
     setIsConnecting(true)
@@ -18,16 +26,26 @@ export function useWallet() {
       if (key) {
         setPublicKey(key)
         setIsConnected(true)
+        setHasManuallyDisconnected(false) // Reset the manual disconnect flag
+        localStorage.removeItem('wallet-manually-disconnected') // Clear the localStorage flag
         
         // Load account balances
         const accountBalances = await stellarService.getAccountBalances(key)
         setBalances(accountBalances)
         
-        // Load Blend positions
-        setIsLoadingPositions(true)
-        const userPositions = await blendService.getUserPositions(key)
-        setPositions(userPositions)
-        setIsLoadingPositions(false)
+        // Load Blend positions only if we have a valid key
+        if (key && key.trim() !== '') {
+          setIsLoadingPositions(true)
+          try {
+            const userPositions = await blendService.getUserPositions(key)
+            setPositions(userPositions)
+          } catch (error) {
+            console.error('Failed to load positions:', error)
+            setPositions([])
+          } finally {
+            setIsLoadingPositions(false)
+          }
+        }
       }
     } catch (error) {
       console.error('Failed to connect wallet:', error)
@@ -38,15 +56,25 @@ export function useWallet() {
   }
 
   const disconnect = () => {
+    console.log('Disconnecting wallet...')
     setPublicKey(null)
     setIsConnected(false)
     setBalances([])
     setPositions([])
+    setIsLoadingPositions(false)
+    setHasManuallyDisconnected(true) // Set the manual disconnect flag
+    localStorage.setItem('wallet-manually-disconnected', 'true') // Persist the flag
   }
 
   useEffect(() => {
-    // Check for existing connection when component mounts
+    // Check for existing connection when component mounts, but only if user hasn't manually disconnected
     const checkExistingConnection = async () => {
+      // Don't auto-reconnect if user has manually disconnected
+      if (hasManuallyDisconnected) {
+        console.log('Skipping auto-reconnect due to manual disconnect')
+        return
+      }
+
       try {
         // Import the official Freighter API
         const { isConnected, getAddress } = await import('@stellar/freighter-api')
@@ -67,10 +95,18 @@ export function useWallet() {
             const accountBalances = await stellarService.getAccountBalances(key)
             setBalances(accountBalances)
             
-            setIsLoadingPositions(true)
-            const userPositions = await blendService.getUserPositions(key)
-            setPositions(userPositions)
-            setIsLoadingPositions(false)
+            if (key && key.trim() !== '') {
+              setIsLoadingPositions(true)
+              try {
+                const userPositions = await blendService.getUserPositions(key)
+                setPositions(userPositions)
+              } catch (error) {
+                console.error('Failed to load positions on reconnect:', error)
+                setPositions([])
+              } finally {
+                setIsLoadingPositions(false)
+              }
+            }
           }
         }
       } catch (error) {
@@ -79,7 +115,7 @@ export function useWallet() {
     }
     
     checkExistingConnection()
-  }, [])
+  }, [hasManuallyDisconnected])
 
   return {
     publicKey,

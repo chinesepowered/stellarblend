@@ -205,12 +205,18 @@ export class BlendService {
 
   async getUserPositions(publicKey: string): Promise<Position[]> {
     try {
+      // Only return positions if publicKey is provided and valid
+      if (!publicKey || publicKey.trim() === '') {
+        console.log('No public key provided, returning empty positions')
+        return []
+      }
+      
       // For now, use generated positions instead of real queries
       console.log(`Generating mock positions for ${publicKey}`)
       return this.getGeneratedPositions(publicKey)
     } catch (error) {
       console.error('Failed to get user positions:', error)
-      return this.getGeneratedPositions(publicKey)
+      return []
     }
   }
 
