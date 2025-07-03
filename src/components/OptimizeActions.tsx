@@ -6,6 +6,7 @@ import { mockSuggestions } from '../services/mockData'
 import { blendService } from '../services/blendService'
 import { stellarService } from '../services/stellarService'
 import { useWallet } from '../hooks/useWallet'
+import { useNetwork } from '../contexts/NetworkContext'
 
 interface OptimizeActionsProps {
   positions: Position[]
@@ -13,6 +14,8 @@ interface OptimizeActionsProps {
 }
 
 export function OptimizeActions({ positions, onOptimize }: OptimizeActionsProps) {
+  const { publicKey } = useWallet()
+  const { isMainnet } = useNetwork()
   const [isOptimizing, setIsOptimizing] = useState(false)
   const [optimizationType, setOptimizationType] = useState<string | null>(null)
   const [showXDRDialog, setShowXDRDialog] = useState(false)
@@ -23,6 +26,26 @@ export function OptimizeActions({ positions, onOptimize }: OptimizeActionsProps)
     amount: number
     xdr: string
   } | null>(null)
+
+  // Don't show optimization if no positions, especially on mainnet
+  if (positions.length === 0) {
+    if (isMainnet) {
+      // On mainnet, never show optimization without real positions
+      return null
+    }
+    // On testnet, show a message about needing positions
+    return (
+      <div className="bg-white p-6 rounded-xl shadow-sm border">
+        <div className="text-center py-8">
+          <Sparkles className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Positions to Optimize</h3>
+          <p className="text-gray-600">
+            Connect to Blend pools and create positions to see optimization strategies.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   const getTransactionSummary = (type: string, asset: string, amount: number) => {
     switch (type.toLowerCase()) {
@@ -72,7 +95,6 @@ export function OptimizeActions({ positions, onOptimize }: OptimizeActionsProps)
         }
     }
   }
-  const { publicKey } = useWallet()
 
   const handleOptimize = async (type: 'yield' | 'safety' | 'leverage') => {
     if (!publicKey) {

@@ -64,6 +64,24 @@ function NetworkAwareApp() {
         </div>
       )}
 
+      {/* Network mismatch warning for mainnet */}
+      {isMainnet && (
+        <div className="bg-orange-50 border-b border-orange-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div className="flex items-center space-x-3">
+              <AlertTriangle className="w-5 h-5 text-orange-600" />
+              <div>
+                <p className="text-sm font-medium text-orange-900">Network Check Required</p>
+                <p className="text-xs text-orange-700">
+                  Make sure your Freighter wallet is set to <strong>Stellar Mainnet</strong> before connecting. 
+                  Check the network dropdown in Freighter settings.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isTestnet && (
         <div className="bg-blue-50 border-b border-blue-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">

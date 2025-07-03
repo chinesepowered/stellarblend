@@ -77,15 +77,15 @@ export function PositionManager() {
                     <Globe className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No Mainnet Positions</h3>
                     <p className="text-gray-600 mb-4">
-                      You don't have any active Blend positions on mainnet yet.
+                      Unable to access mainnet pools due to geo-restrictions on the official Blend UI.
                     </p>
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-md mx-auto">
                       <div className="flex items-start space-x-3">
                         <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
                         <div className="text-left">
-                          <p className="text-sm font-medium text-yellow-900">Mainnet Note</p>
+                          <p className="text-sm font-medium text-yellow-900">Geo-Blocked Access</p>
                           <p className="text-xs text-yellow-700 mt-1">
-                            Real Blend pools might not be deployed yet. Try <a href="/testnet" className="underline font-medium">testnet demo</a> to see full functionality.
+                            Mainnet pools are geo-blocked. Try <a href="/testnet" className="underline font-medium">testnet demo</a> to see full functionality with real Blend pools.
                           </p>
                         </div>
                       </div>

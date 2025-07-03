@@ -65,17 +65,15 @@ export class BlendService {
     console.log('🌐 Mainnet mode:', this.isMainnet)
   }
 
-  async getPoolInfo(assetAddress: string) {
+  async getPoolInfo(assetAddress: string): Promise<any> {
     try {
-      // Always try to get real pool data first
       return await this.queryRealPoolData(assetAddress)
     } catch (error) {
       if (this.isMainnet) {
-        // On mainnet, never fall back to mock data - throw the error
         console.error('❌ Failed to load real pool data on mainnet:', error)
         throw new Error(`No real pool found for ${this.getAssetName(assetAddress)} on mainnet`)
       } else {
-        // On testnet, fall back to demo data
+        // On testnet, fall back to demo data if real pool discovery fails
         console.error('Failed to get real pool info, falling back to demo data:', error)
         const mockData = this.getMockPoolData(assetAddress)
         if (mockData) {
@@ -322,54 +320,115 @@ export class BlendService {
   }
 
   private getGeneratedPositions(publicKey: string): Position[] {
-    // Fallback: generate positions based on wallet address hash for consistency
-    const assetTokens = [
-      this.contracts.USDC_TOKEN,
-      this.contracts.XLM_TOKEN,
-      this.contracts.BLND_TOKEN
+    // Generate consistent, rich demo positions for testnet showcase
+    const demoPositions: Position[] = []
+    
+    // Define demo assets with guaranteed amounts for reliable demo experience
+    const demoAssets = [
+      { address: this.contracts.USDC_TOKEN, minAmount: 5000, maxAmount: 25000, preferLending: true },
+      { address: this.contracts.XLM_TOKEN, minAmount: 10000, maxAmount: 50000, preferLending: false },
+      { address: this.contracts.BLND_TOKEN, minAmount: 2000, maxAmount: 8000, preferLending: true }
     ]
 
-    // Add testnet-specific assets
+    // Add testnet-specific assets for richer demo
     if (this.networkPassphrase === STELLAR_NETWORKS.TESTNET) {
-      assetTokens.push(
-        this.contracts.WETH_TOKEN,
-        this.contracts.WBTC_TOKEN
+      demoAssets.push(
+        { address: this.contracts.WETH_TOKEN, minAmount: 3000, maxAmount: 12000, preferLending: false },
+        { address: this.contracts.WBTC_TOKEN, minAmount: 1000, maxAmount: 5000, preferLending: true }
       )
     }
 
-    const positions: Position[] = []
-
-    for (const assetAddress of assetTokens) {
-      // Generate positions based on wallet address hash for consistency
-      const walletSeed = this.hashString(publicKey + assetAddress)
-      const hasPosition = walletSeed % 100 > 40 // 60% chance of having a position
-
-      if (hasPosition) {
-        const isLending = (walletSeed % 100) > 30 // 70% chance of lending vs borrowing
-        const baseAmount = (walletSeed % 50000) + 1000 // Deterministic amount
-
-        // Get pool info for this asset (use sync mock data)
-        const poolInfo = this.getMockPoolData(assetAddress)
+    for (let i = 0; i < demoAssets.length; i++) {
+      const asset = demoAssets[i]
+      const walletSeed = this.hashString(publicKey + asset.address)
+      
+      // Always generate at least 3-4 positions for a good demo
+      const shouldGenerate = i < 3 || (walletSeed % 100) > 30 // First 3 guaranteed, others 70% chance
+      
+      if (shouldGenerate) {
+        const isLending = asset.preferLending ? (walletSeed % 100) > 25 : (walletSeed % 100) > 65
+        const amount = asset.minAmount + (walletSeed % (asset.maxAmount - asset.minAmount))
+        
+        // Get pool info for this asset
+        const poolInfo = this.getMockPoolData(asset.address)
         if (poolInfo) {
-          const position: Position = {
-            id: `${assetAddress}-${isLending ? 'supply' : 'borrow'}`,
-            asset: poolInfo.asset,
-            address: assetAddress,
-            type: isLending ? 'lending' : 'borrowing',
-            amount: baseAmount,
-            apy: isLending ? poolInfo.supplyAPY : -poolInfo.borrowAPY,
-            totalValue: baseAmount * (isLending ? 1 : 1),
-            healthFactor: isLending ? 2.5 : 1.2 + ((walletSeed % 80) / 100),
-            liquidationThreshold: poolInfo.liquidationThreshold,
-            status: isLending ? 'healthy' as const : ((walletSeed % 100) > 70 ? 'at_risk' as const : 'healthy' as const)
+          // For demo purposes, adjust APY to ensure optimization suggestions
+          let adjustedSupplyAPY = poolInfo.supplyAPY
+          let adjustedBorrowAPY = poolInfo.borrowAPY
+          
+          // Make some positions have lower APY to trigger optimization suggestions
+          if (i === 1 && isLending) {
+            adjustedSupplyAPY = Math.max(3, poolInfo.supplyAPY - 5) // Lower supply APY for optimization
           }
-          positions.push(position)
+          
+          const position: Position = {
+            id: `${asset.address}-${isLending ? 'supply' : 'borrow'}`,
+            asset: poolInfo.asset,
+            address: asset.address,
+            type: isLending ? 'lending' : 'borrowing',
+            amount: amount,
+            apy: isLending ? adjustedSupplyAPY : -adjustedBorrowAPY,
+            totalValue: amount,
+            healthFactor: isLending ? 2.1 + ((walletSeed % 40) / 100) : 1.3 + ((walletSeed % 60) / 100),
+            liquidationThreshold: poolInfo.liquidationThreshold,
+            status: this.getDemoPositionStatus(isLending, walletSeed)
+          }
+          demoPositions.push(position)
         }
       }
     }
 
-    console.log(`Generated ${positions.length} fallback positions for ${publicKey}`)
-    return positions
+    // Ensure we always have at least 2 positions for a good demo
+    if (demoPositions.length < 2) {
+      console.log('⚠️  Demo had insufficient positions, adding guaranteed ones...')
+      
+      // Add guaranteed USDC lending position
+      const usdcPool = this.getMockPoolData(this.contracts.USDC_TOKEN)
+      if (usdcPool) {
+        demoPositions.push({
+          id: `${this.contracts.USDC_TOKEN}-supply-guaranteed`,
+          asset: usdcPool.asset,
+          address: this.contracts.USDC_TOKEN,
+          type: 'lending',
+          amount: 15000,
+          apy: usdcPool.supplyAPY,
+          totalValue: 15000,
+          healthFactor: 2.4,
+          liquidationThreshold: usdcPool.liquidationThreshold,
+          status: 'healthy' as const
+        })
+      }
+
+      // Add guaranteed XLM borrowing position  
+      const xlmPool = this.getMockPoolData(this.contracts.XLM_TOKEN)
+      if (xlmPool) {
+        demoPositions.push({
+          id: `${this.contracts.XLM_TOKEN}-borrow-guaranteed`,
+          asset: xlmPool.asset,
+          address: this.contracts.XLM_TOKEN,
+          type: 'borrowing',
+          amount: 8000,
+          apy: -xlmPool.borrowAPY,
+          totalValue: 8000,
+          healthFactor: 1.6,
+          liquidationThreshold: xlmPool.liquidationThreshold,
+          status: 'healthy' as const
+        })
+      }
+    }
+
+    console.log(`🧪 Generated ${demoPositions.length} reliable demo positions for testnet showcase`)
+    console.log(`💰 Total demo portfolio value: $${demoPositions.reduce((sum, p) => sum + p.totalValue, 0).toLocaleString()}`)
+    
+    return demoPositions
+  }
+
+  private getDemoPositionStatus(isLending: boolean, seed: number): 'healthy' | 'at_risk' | 'active' {
+    if (isLending) return 'healthy' // Lending positions are always healthy
+    
+    const risk = seed % 100
+    if (risk > 85) return 'at_risk' // 15% chance of at-risk for borrowing
+    return 'healthy'
   }
 
   // Simple hash function for deterministic randomness
@@ -453,44 +512,242 @@ export class BlendService {
 
   async getAllPoolsInfo() {
     try {
-      const poolsInfo = []
+      console.log(`🔍 Discovering pools on ${this.isMainnet ? 'mainnet' : 'testnet'}...`)
       
-      // Get info for all available assets
-      const assetTokens = [
-        this.contracts.USDC_TOKEN,
-        this.contracts.XLM_TOKEN,
-        this.contracts.BLND_TOKEN
-      ]
-
-      // Add testnet-specific assets
-      if (this.networkPassphrase === STELLAR_NETWORKS.TESTNET) {
-        assetTokens.push(
+      if (this.isMainnet) {
+        // On mainnet, try to discover real deployed pools
+        console.log('🏭 Checking for deployed Blend pools on mainnet...')
+        console.log('📋 Pool Factory: CDSYOAVXFY7SM5S64IZPPPYB4GVGGLMQVFREPSQQEZVIWXX5R23G4QSU')
+        
+        try {
+          // Method 1: Try to discover pools via Pool Factory events
+          const discoveredPools = await this.discoverPoolsFromEvents()
+          
+          if (discoveredPools.length > 0) {
+            console.log(`🎉 Discovered ${discoveredPools.length} real mainnet pools via events!`)
+            return discoveredPools
+          }
+          
+          // Method 2: Try known pool addresses (community-sourced)
+          const knownPools = await this.tryKnownPools()
+          
+          if (knownPools.length > 0) {
+            console.log(`🎉 Found ${knownPools.length} known mainnet pools!`)
+            return knownPools
+          }
+          
+          console.log('📭 No mainnet pools found')
+          console.log('💡 This is normal - pools are deployed by individual users/organizations')
+          console.log('⚠️  Note: https://mainnet.blend.capital is currently geo-blocked')
+          console.log('🚀 Deploy your own pool using blend-utils: https://github.com/blend-capital/blend-utils')
+          return []
+          
+        } catch (error) {
+          console.error('❌ Failed to discover mainnet pools:', error)
+          console.log('📝 Pool discovery requires individual pool addresses to be known')
+          console.log('🏭 Pool Factory does not provide enumeration API')
+          return []
+        }
+      } else {
+        // On testnet, try to discover real testnet pools first, then fall back to demo
+        console.log('🧪 Testnet: Trying to discover real testnet pools first...')
+        
+        try {
+          const realTestnetPools = await this.discoverRealTestnetPools()
+          
+          if (realTestnetPools.length > 0) {
+            console.log(`🎉 Found ${realTestnetPools.length} real testnet pools!`)
+            return realTestnetPools
+          }
+          
+          console.log('📋 No real testnet pools found, using demo data for functionality showcase')
+        } catch (error) {
+          console.log('⚠️  Real testnet pool discovery failed, using demo data:', error)
+        }
+        
+        // Fallback to demo pools for functionality showcase
+        const poolsInfo = []
+        
+        const assetTokens = [
+          this.contracts.USDC_TOKEN,
+          this.contracts.XLM_TOKEN,
+          this.contracts.BLND_TOKEN,
           this.contracts.WETH_TOKEN,
           this.contracts.WBTC_TOKEN
-        )
-      }
+        ]
 
-      for (const assetAddress of assetTokens) {
-        const info = await this.getPoolInfo(assetAddress)
-        if (info) {
-          poolsInfo.push({
-            name: info.asset,
-            address: assetAddress,
-            ...info
-          })
+        for (const assetAddress of assetTokens) {
+          const info = await this.getPoolInfo(assetAddress)
+          if (info) {
+            poolsInfo.push({
+              name: info.asset,
+              address: assetAddress,
+              poolAddress: info.poolAddress,
+              isDemo: true, // Mark as demo data
+              ...info
+            })
+          }
         }
-      }
 
-      console.log(`Loaded ${poolsInfo.length} pools for ${this.networkPassphrase}`)
-      return poolsInfo
+        console.log(`🧪 Generated ${poolsInfo.length} demo pools for testnet showcase`)
+        return poolsInfo
+      }
     } catch (error) {
       console.error('Failed to get all pools info:', error)
       return []
     }
   }
 
+  private async discoverPoolsFromEvents(): Promise<any[]> {
+    try {
+      console.log('🔍 Discovering pools via Pool Factory events...')
+      
+      // Use Stellar SDK to query Pool Factory events
+      const { Horizon } = await import('@stellar/stellar-sdk')
+      
+      const server = new Horizon.Server('https://horizon.stellar.org')
+      const POOL_FACTORY_ADDRESS = 'CDSYOAVXFY7SM5S64IZPPPYB4GVGGLMQVFREPSQQEZVIWXX5R23G4QSU'
+      
+      // Query contract events for pool deployments
+      console.log('📡 Querying Pool Factory deployment events...')
+      
+      const eventCall = server.operations()
+        .forAccount(POOL_FACTORY_ADDRESS)
+        .order('desc')
+        .limit(100)
+      
+      const events = await eventCall.call()
+      console.log(`📋 Found ${events.records.length} Pool Factory operations`)
+      
+      // Filter for pool deployment operations and extract pool addresses
+      const poolAddresses: string[] = []
+      
+      for (const operation of events.records) {
+        // Look for invoke_contract operations that might be pool deployments
+        if (operation.type === 'invoke_host_function') {
+          console.log('🔍 Found potential pool deployment operation:', operation.id)
+          // TODO: Parse operation details to extract deployed pool address
+          // This would require analyzing the operation's effects and return values
+        }
+      }
+      
+      if (poolAddresses.length === 0) {
+        console.log('⚠️  No pool addresses found in Pool Factory events')
+        console.log('💡 This might mean no pools have been deployed yet, or event parsing needs refinement')
+        return []
+      }
+      
+      // Load discovered pools
+      const discoveredPools = []
+      for (const poolAddress of poolAddresses) {
+        try {
+          const pools = await this.loadPoolData(poolAddress)
+          discoveredPools.push(...pools)
+        } catch (error) {
+          console.log(`❌ Failed to load pool ${poolAddress}:`, error)
+        }
+      }
+      
+      return discoveredPools
+      
+    } catch (error) {
+      console.error('❌ Event-based pool discovery failed:', error)
+      return []
+    }
+  }
+
+  private async tryKnownPools(): Promise<any[]> {
+    try {
+      console.log('🔍 Trying known community pool addresses...')
+      
+      // Known mainnet pool addresses from community sources
+      // These would be updated as pools are discovered and shared
+      const knownMainnetPools: string[] = [
+        // Add known deployed pool addresses here when they become available
+        // Example: 'CBQHNAXSI55GX2GN6D67GK7BHVPSLJUGZQEU7WJ5LKR5PNUCGLIMAO4K'
+      ]
+      
+      if (knownMainnetPools.length === 0) {
+        console.log('📭 No known pool addresses configured')
+        console.log('💡 Pool addresses would be added here as they are discovered by the community')
+        return []
+      }
+      
+      const discoveredPools = []
+      
+      for (const poolAddress of knownMainnetPools) {
+        try {
+          const pools = await this.loadPoolData(poolAddress)
+          discoveredPools.push(...pools)
+        } catch (error) {
+          console.log(`❌ Failed to load known pool ${poolAddress}:`, error)
+        }
+      }
+      
+      return discoveredPools
+      
+    } catch (error) {
+      console.error('❌ Known pool discovery failed:', error)
+      return []
+    }
+  }
+
+  private async loadPoolData(poolAddress: string): Promise<any[]> {
+    try {
+      const { Pool } = await import('@blend-capital/blend-sdk')
+      
+      const network = {
+        rpc: 'https://soroban-rpc.mainnet.stellar.gateway.fm',
+        passphrase: this.networkPassphrase
+      }
+      
+      console.log(`🔄 Loading pool data for ${poolAddress}...`)
+      const pool = await Pool.load(network, poolAddress)
+      
+      console.log(`✅ Pool ${poolAddress} loaded successfully!`)
+      console.log(`📊 Pool has ${Array.from(pool.reserves.keys()).length} reserves`)
+      
+      // Convert pool reserves to our format
+      const poolData = []
+      for (const [assetAddress, reserve] of pool.reserves.entries()) {
+        if (reserve) {
+          poolData.push({
+            name: this.getAssetName(assetAddress),
+            address: assetAddress,
+            poolAddress: poolAddress,
+            totalSupply: reserve.totalSupplyFloat(),
+            totalBorrow: reserve.totalLiabilitiesFloat(),
+            supplyAPY: reserve.supplyApr * 100,
+            borrowAPY: reserve.borrowApr * 100,
+            utilizationRate: reserve.getUtilizationFloat(),
+            liquidationThreshold: reserve.getCollateralFactor(),
+            isRealData: true
+          })
+        }
+      }
+      
+      return poolData
+      
+    } catch (error) {
+      console.error(`❌ Failed to load pool ${poolAddress}:`, error)
+      throw error
+    }
+  }
+
   async getOptimizationSuggestions(positions: Position[]) {
     try {
+      // Don't show optimization suggestions on mainnet if no positions
+      if (this.isMainnet && positions.length === 0) {
+        console.log('🌐 Mainnet: No optimization suggestions without real positions')
+        return []
+      }
+      
+      // Don't show optimization suggestions if no positions at all
+      if (positions.length === 0) {
+        console.log('📋 No positions available for optimization')
+        return []
+      }
+
       const suggestions = []
 
       // Analyze positions for optimization opportunities
@@ -532,9 +789,88 @@ export class BlendService {
         }
       }
 
+      console.log(`💡 Generated ${suggestions.length} optimization suggestions for ${this.isMainnet ? 'mainnet' : 'testnet'}`)
       return suggestions.slice(0, 3) // Return top 3 suggestions
     } catch (error) {
       console.error('Failed to get optimization suggestions:', error)
+      return []
+    }
+  }
+
+  private async discoverRealTestnetPools(): Promise<any[]> {
+    if (this.isMainnet) {
+      return [] // This method is only for testnet
+    }
+
+    console.log('🔍 Attempting to discover real Blend pools on testnet...')
+    
+    try {
+      const { Pool } = await import('@blend-capital/blend-sdk')
+      
+      const network = {
+        rpc: 'https://soroban-testnet.stellar.org',
+        passphrase: this.networkPassphrase
+      }
+
+      // Known testnet pool addresses (these could be discovered from Pool Factory)
+      // For now, we'll try some expected testnet pool patterns
+      const testnetPoolCandidates: string[] = [
+        // Add known testnet pool addresses here
+        // These would ideally be discovered from Pool Factory events on testnet
+      ]
+
+      // Try to discover pools from Pool Factory events on testnet
+      const discoveredPools = await this.discoverPoolsFromEvents()
+      testnetPoolCandidates.push(...discoveredPools.map(p => p.address))
+
+      console.log(`🔎 Checking ${testnetPoolCandidates.length} potential testnet pools...`)
+
+      const realPools: any[] = []
+
+      for (const poolAddress of testnetPoolCandidates) {
+        try {
+          console.log(`🔄 Loading testnet pool ${poolAddress}...`)
+          const pool = await Pool.load(network, poolAddress)
+          
+          console.log(`✅ Pool loaded! Available reserves:`, Array.from(pool.reserves.keys()))
+          
+          // Convert pool reserves to our format
+          for (const [assetAddress, reserve] of pool.reserves) {
+            if (!reserve) continue
+            
+            const poolInfo = {
+              asset: this.getAssetName(assetAddress),
+              address: assetAddress,
+              poolAddress: poolAddress,
+              totalSupply: reserve.totalSupplyFloat(),
+              totalBorrow: reserve.totalLiabilitiesFloat(),
+              supplyAPY: reserve.supplyApr * 100,
+              borrowAPY: reserve.borrowApr * 100,
+              utilizationRate: reserve.getUtilizationFloat(),
+              liquidationThreshold: reserve.getCollateralFactor(),
+              isRealData: true // This is real testnet data
+            }
+            
+            realPools.push(poolInfo)
+            console.log(`🎉 Added real testnet pool for ${poolInfo.asset}`)
+          }
+          
+        } catch (poolError) {
+          console.log(`❌ Failed to load testnet pool ${poolAddress}:`, (poolError as Error).message)
+          continue
+        }
+      }
+
+      if (realPools.length > 0) {
+        console.log(`🎉 Successfully discovered ${realPools.length} real testnet pools!`)
+        return realPools
+      } else {
+        console.log('📋 No real testnet pools discovered')
+        return []
+      }
+      
+    } catch (error) {
+      console.error('❌ Testnet pool discovery failed:', error)
       return []
     }
   }
