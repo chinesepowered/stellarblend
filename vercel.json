@@ -7,8 +7,5 @@
   "buildCommand": "pnpm run build",
   "devCommand": "pnpm run dev",
   "installCommand": "pnpm install",
-  "framework": "vite",
-  "typescript": {
-    "ignoreBuildErrors": true
-  }
+  "framework": "vite"
 } 

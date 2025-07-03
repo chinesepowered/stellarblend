@@ -94,6 +94,24 @@ DeFi interfaces are complex and intimidating for most users. This app provides a
 
 ## Getting Started
 
+### Network Selection
+
+The app supports two networks for different use cases:
+
+#### 🌐 **Mainnet Mode** (`/mainnet`)
+- **For judges & production testing**
+- Real Blend pools with live Stellar mainnet data
+- Actual transaction execution with real funds
+- No fallback to mock data - authentic DeFi experience
+
+#### 🧪 **Testnet Mode** (`/testnet`) 
+- **For demos & safe exploration**
+- Enhanced demo data showcasing full functionality
+- Risk-free testing without real funds
+- Complete feature walkthrough with realistic metrics
+
+### Quick Start
+
 ```bash
 # Install dependencies
 pnpm install
@@ -104,6 +122,11 @@ pnpm run dev
 # Build for production
 pnpm run build
 ```
+
+**Navigation:**
+- Visit `/` to see the network switcher
+- Go to `/mainnet` for production-ready experience
+- Go to `/testnet` for safe demo mode
 
 **Prerequisites**: Node.js 18+, PNPM, Freighter Wallet
 

@@ -44,90 +44,174 @@ export const getNetworkContracts = (networkPassphrase: string) => {
 export class BlendService {
   private networkPassphrase: string
   private contracts: any
+  private isMainnet: boolean
 
   constructor(networkPassphrase: string = STELLAR_NETWORKS.TESTNET) {
     this.networkPassphrase = networkPassphrase
     this.contracts = getNetworkContracts(networkPassphrase)
+    this.isMainnet = networkPassphrase === STELLAR_NETWORKS.PUBLIC
     console.log('Blend service initialized for network:', this.networkPassphrase)
     console.log('Using contracts:', this.contracts)
+    console.log('Mainnet mode:', this.isMainnet)
+  }
+
+  updateNetwork(networkPassphrase: string) {
+    console.log('🔄 BlendService: Switching network from', this.networkPassphrase, 'to', networkPassphrase)
+    this.networkPassphrase = networkPassphrase
+    this.contracts = getNetworkContracts(networkPassphrase)
+    this.isMainnet = networkPassphrase === STELLAR_NETWORKS.PUBLIC
+    console.log('✅ BlendService updated for network:', this.networkPassphrase)
+    console.log('📋 Using contracts:', this.contracts)
+    console.log('🌐 Mainnet mode:', this.isMainnet)
   }
 
   async getPoolInfo(assetAddress: string) {
     try {
-      // Try to get real pool data using the asset address
+      // Always try to get real pool data first
       return await this.queryRealPoolData(assetAddress)
     } catch (error) {
-      console.error('Failed to get real pool info, falling back to mock:', error)
-      // Fallback to mock data if real query fails
-      return this.getMockPoolData(assetAddress)
+      if (this.isMainnet) {
+        // On mainnet, never fall back to mock data - throw the error
+        console.error('❌ Failed to load real pool data on mainnet:', error)
+        throw new Error(`No real pool found for ${this.getAssetName(assetAddress)} on mainnet`)
+      } else {
+        // On testnet, fall back to demo data
+        console.error('Failed to get real pool info, falling back to demo data:', error)
+        const mockData = this.getMockPoolData(assetAddress)
+        if (mockData) {
+          mockData.isRealData = false
+          mockData.poolAddress = 'TESTNET_DEMO_MODE'
+        }
+        return mockData
+      }
     }
   }
 
   private async queryRealPoolData(assetAddress: string) {
     try {
-      // Import Blend SDK dynamically
-      // Import Pool for potential future use
-      // const { Pool } = await import('@blend-capital/blend-sdk')
-      
-      // Create network configuration with correct Soroban RPC URLs
-      // const network = {
-      //   rpc: this.networkPassphrase === STELLAR_NETWORKS.PUBLIC
-      //     ? 'https://soroban-rpc.mainnet.stellar.gateway.fm'
-      //     : 'https://soroban-testnet.stellar.org',
-      //   passphrase: this.networkPassphrase
-      // }
+      if (this.isMainnet) {
+        // On mainnet, attempt to load real pools
+        console.log(`🔍 Loading real Blend pools for ${this.getAssetName(assetAddress)} on mainnet`)
+        
+        const { Pool } = await import('@blend-capital/blend-sdk')
+        
+        const network = {
+          rpc: this.networkPassphrase === STELLAR_NETWORKS.PUBLIC
+            ? 'https://soroban-rpc.mainnet.stellar.gateway.fm'
+            : 'https://soroban-testnet.stellar.org',
+          passphrase: this.networkPassphrase
+        }
 
-      console.log(`Querying real Blend pool data for asset ${assetAddress} on ${this.networkPassphrase}`)
-      
-      // List of known testnet pool addresses - these would need to be discovered
-      // For now, we'll try some potential pool addresses based on the testnet contracts
-      // const potentialPoolAddresses = [
-      //   // Try using asset addresses as potential pool addresses (likely won't work)
-      //   // In a real implementation, you'd need to discover actual pool addresses
-      //   // through the Pool Factory or from known deployed contracts
-      // ]
-      
-      // TODO: Implement real pool discovery when pool addresses are available
-      // The proper implementation would be:
-      // 1. Get actual deployed pool contract addresses from Pool Factory or known list
-      // 2. Use Pool.load(network, poolAddress) for each pool
-      // 3. Check pool.reserves to see which assets each pool supports
-      // 4. Return real reserve data using reserve.totalSupplyFloat(), etc.
-      //
-      // Example real implementation:
-      // const knownPools = ['CXXXPOOLADDRESS1XXX', 'CXXXPOOLADDRESS2XXX']
-      // for (const poolAddress of knownPools) {
-      //   const pool = await Pool.load(network, poolAddress)
-      //   if (pool.reserves.has(assetAddress)) {
-      //     const reserve = pool.reserves.get(assetAddress)
-      //     return realPoolData(reserve)
-      //   }
-      // }
-      
-      console.log(`Real pool discovery not yet implemented for ${assetAddress}`)
-      console.log('Using enhanced mock data until actual pool addresses are available')
-      
-      // For the hackathon, we can provide enhanced mock data that looks more realistic
-      const assetName = this.getAssetName(assetAddress)
-      const enhancedMockData = {
-        asset: assetName,
-        address: assetAddress,
-        poolAddress: 'POOL_NOT_FOUND', // Indicates no real pool found
-        totalSupply: Math.random() * 10000000 + 1000000, // Random realistic values
-        totalBorrow: Math.random() * 5000000 + 500000,
-        supplyAPY: Math.random() * 10 + 3, // 3-13% APY
-        borrowAPY: Math.random() * 15 + 5, // 5-20% APY
-        utilizationRate: Math.random() * 0.8 + 0.1, // 10-90% utilization
-        liquidationThreshold: 0.75 + Math.random() * 0.15, // 75-90%
-        isRealData: false // Flag to indicate this is enhanced mock data
+        // Try to discover pools via Pool Factory
+        // Note: This might need to be adapted based on actual Pool Factory API
+        console.log('📋 Attempting to discover pools via Pool Factory...')
+        
+        // For now, we'll try some known mainnet pool addresses
+        // These would ideally be discovered from Pool Factory events or a pool registry
+        const knownMainnetPools: string[] = [
+          // Add known mainnet pool addresses here when available
+          // These would be discovered from the Pool Factory in a production app
+        ]
+        
+        if (knownMainnetPools.length === 0) {
+          console.log('⚠️  No known mainnet pool addresses configured')
+          console.log('   Pool discovery from Pool Factory needs to be implemented')
+          throw new Error('Pool discovery not yet implemented for mainnet')
+        }
+        
+        // Try to load each known pool
+        for (const poolAddress of knownMainnetPools) {
+          try {
+            console.log(`🔄 Trying to load mainnet pool ${poolAddress}...`)
+            const pool = await Pool.load(network, poolAddress)
+            
+            console.log(`✅ Pool loaded! Checking if it supports ${assetAddress}...`)
+            console.log('📊 Available reserves:', Array.from(pool.reserves.keys()))
+            
+            if (pool.reserves.has(assetAddress)) {
+              const reserve = pool.reserves.get(assetAddress)
+              if (!reserve) {
+                console.log(`❌ Reserve found but is null for ${assetAddress}`)
+                continue
+              }
+              
+              console.log(`🎉 Found real mainnet pool data for ${this.getAssetName(assetAddress)}!`)
+              
+              // Get real reserve data
+              const totalSupply = reserve.totalSupplyFloat()
+              const totalBorrow = reserve.totalLiabilitiesFloat()
+              const utilizationRate = reserve.getUtilizationFloat()
+              const borrowAPY = reserve.borrowApr * 100
+              const supplyAPY = reserve.supplyApr * 100
+              
+              console.log('📈 Real mainnet pool metrics:', {
+                totalSupply: totalSupply.toFixed(2),
+                totalBorrow: totalBorrow.toFixed(2),
+                utilizationRate: (utilizationRate * 100).toFixed(1) + '%',
+                supplyAPY: supplyAPY.toFixed(2) + '%',
+                borrowAPY: borrowAPY.toFixed(2) + '%'
+              })
+              
+              return {
+                asset: this.getAssetName(assetAddress),
+                address: assetAddress,
+                poolAddress: poolAddress,
+                totalSupply: totalSupply,
+                totalBorrow: totalBorrow,
+                supplyAPY: supplyAPY,
+                borrowAPY: borrowAPY,
+                utilizationRate: utilizationRate,
+                liquidationThreshold: reserve.getCollateralFactor(),
+                isRealData: true
+              }
+            } else {
+              console.log(`❌ Pool ${poolAddress} does not support asset ${assetAddress}`)
+            }
+          } catch (poolError) {
+            console.log(`❌ Failed to load pool ${poolAddress}:`, (poolError as Error).message)
+            continue
+          }
+        }
+        
+        throw new Error(`No mainnet pools found supporting ${this.getAssetName(assetAddress)}`)
+        
+      } else {
+        // On testnet, use demo data
+        console.log(`🔍 Testnet mode - generating demo data for ${this.getAssetName(assetAddress)}`)
+        console.log('ℹ️  Note: Blend core contracts are deployed, but individual pools must be created separately')
+        console.log('💡 To deploy real pools, use: https://github.com/blend-capital/blend-utils')
+        console.log('📝 For demo purposes, using realistic mock data that shows the full UI')
+        
+        // Generate realistic demo data for testnet
+        const assetName = this.getAssetName(assetAddress)
+        const mockData = {
+          asset: assetName,
+          address: assetAddress,
+          poolAddress: 'TESTNET_DEMO_MODE',
+          totalSupply: Math.random() * 10000000 + 1000000,
+          totalBorrow: Math.random() * 5000000 + 500000,
+          supplyAPY: Math.random() * 10 + 3, // 3-13% APY
+          borrowAPY: Math.random() * 15 + 5, // 5-20% APY
+          utilizationRate: 0, // Will be calculated below
+          liquidationThreshold: 0.75 + Math.random() * 0.15, // 75-90%
+          isRealData: false
+        }
+        
+        mockData.utilizationRate = mockData.totalBorrow / mockData.totalSupply
+        
+        console.log(`📊 Generated testnet demo data for ${assetName}:`, {
+          totalSupply: mockData.totalSupply.toFixed(2),
+          totalBorrow: mockData.totalBorrow.toFixed(2),
+          utilizationRate: (mockData.utilizationRate * 100).toFixed(1) + '%',
+          supplyAPY: mockData.supplyAPY.toFixed(2) + '%',
+          borrowAPY: mockData.borrowAPY.toFixed(2) + '%'
+        })
+        
+        return mockData
       }
       
-      enhancedMockData.utilizationRate = enhancedMockData.totalBorrow / enhancedMockData.totalSupply
-      
-      console.log('Generated enhanced mock data for', assetName)
-      return enhancedMockData
     } catch (error) {
-      console.error('Real pool query failed:', error)
+      console.error('❌ Pool query failed:', error)
       throw error
     }
   }
@@ -212,16 +296,30 @@ export class BlendService {
         return []
       }
       
-      // For now, use generated positions instead of real queries
-      console.log(`Generating mock positions for ${publicKey}`)
-      return this.getGeneratedPositions(publicKey)
+      if (this.isMainnet) {
+        // On mainnet, never return mock data - only real positions
+        console.log(`🌐 Mainnet: Attempting to load real positions for ${publicKey}`)
+        
+        try {
+          // TODO: Implement real position loading from Blend pools
+          // For now, return empty array until real pools are deployed
+          console.log('⚠️  Real position loading not yet implemented for mainnet')
+          console.log('📋 No mainnet Blend pools deployed yet - returning empty positions')
+          return []
+        } catch (error) {
+          console.error('❌ Failed to load real positions on mainnet:', error)
+          return []
+        }
+      } else {
+        // On testnet, use demo data for functionality showcase
+        console.log(`🧪 Testnet: Generating demo positions for ${publicKey}`)
+        return this.getGeneratedPositions(publicKey)
+      }
     } catch (error) {
       console.error('Failed to get user positions:', error)
       return []
     }
   }
-
-
 
   private getGeneratedPositions(publicKey: string): Position[] {
     // Fallback: generate positions based on wallet address hash for consistency

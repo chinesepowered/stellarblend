@@ -1,23 +1,24 @@
 import { useState, useEffect } from 'react'
 import { stellarService } from '../services/stellarService'
 import { blendService } from '../services/blendService'
+import { useNetwork } from '../contexts/NetworkContext'
 import type { Position } from '../types'
 
 export function useWallet() {
+  const { networkPassphrase } = useNetwork()
   const [publicKey, setPublicKey] = useState<string | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const [balances, setBalances] = useState<Array<{ asset: string; balance: number; limit: number | null }>>([])
   const [positions, setPositions] = useState<Position[]>([])
   const [isLoadingPositions, setIsLoadingPositions] = useState(false)
-  const [hasManuallyDisconnected, setHasManuallyDisconnected] = useState(() => {
-    // Check localStorage for manual disconnect flag
-    try {
-      return localStorage.getItem('wallet-manually-disconnected') === 'true'
-    } catch {
-      return false
-    }
-  })
+  const [hasManuallyDisconnected, setHasManuallyDisconnected] = useState(false)
+
+  // Initialize BlendService with current network
+  useEffect(() => {
+    console.log('🔄 Network changed to:', networkPassphrase)
+    blendService.updateNetwork(networkPassphrase)
+  }, [networkPassphrase])
 
   const connect = async () => {
     setIsConnecting(true)
@@ -27,7 +28,6 @@ export function useWallet() {
         setPublicKey(key)
         setIsConnected(true)
         setHasManuallyDisconnected(false) // Reset the manual disconnect flag
-        localStorage.removeItem('wallet-manually-disconnected') // Clear the localStorage flag
         
         // Load account balances
         const accountBalances = await stellarService.getAccountBalances(key)
@@ -63,7 +63,6 @@ export function useWallet() {
     setPositions([])
     setIsLoadingPositions(false)
     setHasManuallyDisconnected(true) // Set the manual disconnect flag
-    localStorage.setItem('wallet-manually-disconnected', 'true') // Persist the flag
   }
 
   useEffect(() => {

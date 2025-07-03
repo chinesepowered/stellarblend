@@ -4,11 +4,14 @@ import { OptimizeActions } from './OptimizeActions'
 import { PortfolioAllocation } from './PortfolioAllocation'
 import { AchievementBadges } from './AchievementBadges'
 import { LiquidationAlert } from './LiquidationAlert'
+import { PoolInfo } from './PoolInfo'
 import { useWallet } from '../hooks/useWallet'
-import { Loader2 } from 'lucide-react'
+import { useNetwork } from '../contexts/NetworkContext'
+import { Loader2, Globe, TestTube, AlertTriangle } from 'lucide-react'
 
 export function PositionManager() {
   const { positions: walletPositions, isLoadingPositions } = useWallet()
+  const { isMainnet } = useNetwork()
   const [positions, setPositions] = useState(walletPositions)
   const [selectedPosition, setSelectedPosition] = useState<string | null>(null)
 
@@ -68,13 +71,39 @@ export function PositionManager() {
               ))
             ) : (
               <div className="text-center py-8 bg-white rounded-xl border">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Positions Found</h3>
-                <p className="text-gray-600 mb-4">
-                  You don't have any active Blend positions yet.
-                </p>
-                <p className="text-sm text-gray-500">
-                  Connect to Blend pools to start lending or borrowing assets.
-                </p>
+                {isMainnet ? (
+                  // Mainnet empty state
+                  <>
+                    <Globe className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Mainnet Positions</h3>
+                    <p className="text-gray-600 mb-4">
+                      You don't have any active Blend positions on mainnet yet.
+                    </p>
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-md mx-auto">
+                      <div className="flex items-start space-x-3">
+                        <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                        <div className="text-left">
+                          <p className="text-sm font-medium text-yellow-900">Mainnet Note</p>
+                          <p className="text-xs text-yellow-700 mt-1">
+                            Real Blend pools might not be deployed yet. Try <a href="/testnet" className="underline font-medium">testnet demo</a> to see full functionality.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  // Testnet empty state
+                  <>
+                    <TestTube className="w-12 h-12 text-blue-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Demo Positions</h3>
+                    <p className="text-gray-600 mb-4">
+                      You don't have any active Blend positions yet.
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      In testnet mode, positions are generated based on your wallet address for demo purposes.
+                    </p>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -83,6 +112,7 @@ export function PositionManager() {
         <div className="space-y-8">
           <PortfolioAllocation positions={positions} onUpdate={setPositions} />
           <AchievementBadges totalValue={totalValue} positionCount={positions.length} />
+          <PoolInfo />
         </div>
       </div>
     </div>
