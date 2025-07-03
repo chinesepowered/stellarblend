@@ -4,6 +4,7 @@ export const mockPositions: Position[] = [
   {
     id: '1',
     asset: 'USDC',
+    address: 'CAQCFVLOBK5GIULPNZRGATJJMIZL5BSP7X5YJVMTIGAITO4YVL3BLGOT',
     type: 'lending',
     amount: 10000,
     apy: 8.5,
@@ -15,6 +16,7 @@ export const mockPositions: Position[] = [
   {
     id: '2',
     asset: 'XLM',
+    address: 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQAHHAGCAAWL',
     type: 'lending',
     amount: 50000,
     apy: 12.3,
@@ -26,6 +28,7 @@ export const mockPositions: Position[] = [
   {
     id: '3',
     asset: 'BTC',
+    address: 'CDVDRPJNMUEXDBH3RDKDLR7OQSNP6RJCQHKM7D56EHUBDWF3XKBLC4ZO',
     type: 'borrowing',
     amount: 0.5,
     apy: -6.2,

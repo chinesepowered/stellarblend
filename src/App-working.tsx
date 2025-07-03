@@ -1,8 +1,8 @@
-import { useState } from 'react'
-import { WalletConnect } from './components/WalletConnect-simple'
+import { WalletConnect } from './components/WalletConnect'
+import { useWallet } from './hooks/useWallet'
 
 function App() {
-  const [isConnected, setIsConnected] = useState(false)
+  const { isConnected } = useWallet()
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -12,7 +12,7 @@ function App() {
             <div className="flex items-center">
               <h1 className="text-2xl font-bold text-gray-900">Blend Position Manager</h1>
             </div>
-            <WalletConnect isConnected={isConnected} onConnect={setIsConnected} />
+            <WalletConnect />
           </div>
         </div>
       </header>

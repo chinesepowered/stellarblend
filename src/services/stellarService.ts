@@ -114,72 +114,9 @@ export class StellarService {
     }
   }
 
-  private async waitForFreighter(timeout: number = 5000): Promise<any> {
-    console.log('Waiting for Freighter wallet to load...')
-    console.log('Available window properties:', typeof window !== 'undefined' ? Object.keys(window).filter(k => k.toLowerCase().includes('freighter')) : 'N/A')
-    
-    return new Promise((resolve) => {
-      // Check for Freighter API (could be freighter or freighterApi)
-      const checkFreighter = () => {
-        if (typeof window !== 'undefined') {
-          // Check for freighterApi (official API)
-          if ((window as any).freighterApi) {
-            console.log('FreighterApi found')
-            return (window as any).freighterApi
-          }
-          // Check for freighter (legacy)
-          if ((window as any).freighter) {
-            console.log('Freighter (legacy) found')
-            return (window as any).freighter
-          }
-        }
-        return null
-      }
 
-      const freighter = checkFreighter()
-      if (freighter) {
-        console.log('Freighter found immediately')
-        resolve(freighter)
-        return
-      }
 
-      console.log('Freighter not found, polling for', timeout, 'ms')
-      
-      // Set up polling to check for Freighter
-      const startTime = Date.now()
-      const interval = setInterval(() => {
-        const freighter = checkFreighter()
-        if (freighter) {
-          console.log('Freighter found after', Date.now() - startTime, 'ms')
-          clearInterval(interval)
-          resolve(freighter)
-        } else if (Date.now() - startTime > timeout) {
-          console.log('Freighter not found after timeout')
-          console.log('All window properties:', typeof window !== 'undefined' ? Object.keys(window) : 'N/A')
-          clearInterval(interval)
-          resolve(null)
-        }
-      }, 100) // Check every 100ms
-    })
-  }
 
-  private async connectMockWallet(): Promise<string> {
-    // Generate a mock testnet public key for development
-    const mockPublicKey = 'GCZMZAKRZV2JRSDA7HQURLRBQC5GSZG6JDTMEHWM4LGP5NNMEGOCYC4M'
-    
-    console.log('🎭 Mock wallet connected with public key:', mockPublicKey)
-    console.log('📝 This is for localhost development only')
-    console.log('🔗 Real wallet connection will work on deployed sites')
-    
-    // Show a user-friendly message
-    if (typeof window !== 'undefined') {
-      setTimeout(() => {
-        alert(`🚀 Development Mode Active!\n\nMock wallet connected for localhost testing.\nPublic Key: ${mockPublicKey.slice(0, 10)}...\n\nReal Freighter wallet will work on deployed sites.`)
-      }, 500)
-    }
-    
-    return mockPublicKey
-  }
 
   async getAccountBalances(publicKey: string) {
     try {

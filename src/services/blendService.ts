@@ -66,25 +66,26 @@ export class BlendService {
   private async queryRealPoolData(assetAddress: string) {
     try {
       // Import Blend SDK dynamically
-      const { Pool } = await import('@blend-capital/blend-sdk')
+      // Import Pool for potential future use
+      // const { Pool } = await import('@blend-capital/blend-sdk')
       
       // Create network configuration with correct Soroban RPC URLs
-      const network = {
-        rpc: this.networkPassphrase === STELLAR_NETWORKS.PUBLIC
-          ? 'https://soroban-rpc.mainnet.stellar.gateway.fm'
-          : 'https://soroban-testnet.stellar.org',
-        passphrase: this.networkPassphrase
-      }
+      // const network = {
+      //   rpc: this.networkPassphrase === STELLAR_NETWORKS.PUBLIC
+      //     ? 'https://soroban-rpc.mainnet.stellar.gateway.fm'
+      //     : 'https://soroban-testnet.stellar.org',
+      //   passphrase: this.networkPassphrase
+      // }
 
       console.log(`Querying real Blend pool data for asset ${assetAddress} on ${this.networkPassphrase}`)
       
       // List of known testnet pool addresses - these would need to be discovered
       // For now, we'll try some potential pool addresses based on the testnet contracts
-      const potentialPoolAddresses = [
-        // Try using asset addresses as potential pool addresses (likely won't work)
-        // In a real implementation, you'd need to discover actual pool addresses
-        // through the Pool Factory or from known deployed contracts
-      ]
+      // const potentialPoolAddresses = [
+      //   // Try using asset addresses as potential pool addresses (likely won't work)
+      //   // In a real implementation, you'd need to discover actual pool addresses
+      //   // through the Pool Factory or from known deployed contracts
+      // ]
       
       // TODO: Implement real pool discovery when pool addresses are available
       // The proper implementation would be:
@@ -220,98 +221,7 @@ export class BlendService {
     }
   }
 
-  private async queryRealUserPositions(publicKey: string): Promise<Position[]> {
-    try {
-      // Import Blend SDK dynamically
-      const { Pool } = await import('@blend-capital/blend-sdk')
-      
-      // Create network configuration
-      const network = {
-        rpc: this.networkPassphrase === STELLAR_NETWORKS.PUBLIC
-          ? 'https://soroban-rpc.mainnet.stellar.gateway.fm'
-          : 'https://soroban-testnet.stellar.org',
-        passphrase: this.networkPassphrase
-      }
 
-      console.log(`Querying real user positions for ${publicKey} on ${this.networkPassphrase}`)
-
-      const assetTokens = [
-        this.contracts.USDC_TOKEN,
-        this.contracts.XLM_TOKEN,
-        this.contracts.BLND_TOKEN
-      ]
-
-      // Add testnet-specific assets
-      if (this.networkPassphrase === STELLAR_NETWORKS.TESTNET) {
-        assetTokens.push(
-          this.contracts.WETH_TOKEN,
-          this.contracts.WBTC_TOKEN
-        )
-      }
-
-      const positions: Position[] = []
-
-      for (const assetAddress of assetTokens) {
-        try {
-          // Query pool for user positions
-          const pool = await Pool.load(network, assetAddress)
-          const poolUser = await pool.loadUser(publicKey)
-
-          // Check each reserve for user positions
-          for (const [reserveAddress, reserve] of pool.reserves) {
-            const supply = poolUser.getSupplyFloat(reserve)
-            const collateral = poolUser.getCollateralFloat(reserve)
-            const liabilities = poolUser.getLiabilitiesFloat(reserve)
-            
-            const poolInfo = await this.getPoolInfo(assetAddress)
-            if (!poolInfo) continue
-
-            // Create position for supplied + collateral assets
-            if (supply > 0 || collateral > 0) {
-              const totalSupplied = supply + collateral
-              positions.push({
-                id: `${reserveAddress}-supply`,
-                asset: poolInfo.asset,
-                address: reserveAddress,
-                type: 'lending',
-                amount: totalSupplied,
-                apy: poolInfo.supplyAPY,
-                totalValue: totalSupplied * 1, // Would need real price
-                healthFactor: 2.5, // Would need to calculate from pool oracle
-                liquidationThreshold: poolInfo.liquidationThreshold,
-                status: 'healthy'
-              })
-            }
-
-            // Create position for borrowed assets
-            if (liabilities > 0) {
-              positions.push({
-                id: `${reserveAddress}-borrow`,
-                asset: poolInfo.asset,
-                address: reserveAddress,
-                type: 'borrowing',
-                amount: liabilities,
-                apy: -poolInfo.borrowAPY,
-                totalValue: liabilities * 1,
-                healthFactor: 1.5, // Would need to calculate from pool oracle
-                liquidationThreshold: poolInfo.liquidationThreshold,
-                status: 'healthy' // Would need to calculate based on health factor
-              })
-            }
-          }
-        } catch (poolError) {
-          console.log(`No positions found for asset ${assetAddress}:`, poolError)
-          // Continue to next asset
-        }
-      }
-
-      console.log(`Found ${positions.length} real positions for ${publicKey}`)
-      return positions
-    } catch (error) {
-      console.error('Real user position query failed:', error)
-      throw error
-    }
-  }
 
   private getGeneratedPositions(publicKey: string): Position[] {
     // Fallback: generate positions based on wallet address hash for consistency
