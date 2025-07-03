@@ -59,8 +59,8 @@ export function NetworkSwitcher() {
             </div>
 
             <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
-              <p className="text-sm text-green-800">
-                <strong>Perfect for judges:</strong> Experience the fully functional app with real data
+              <p className="text-green-700 text-sm">
+                Experience the fully functional app with real data and blockchain interactions on Stellar mainnet.
               </p>
             </div>
           </Link>

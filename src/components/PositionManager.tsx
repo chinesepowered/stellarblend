@@ -85,7 +85,7 @@ export function PositionManager() {
                         <div className="text-left">
                           <p className="text-sm font-medium text-yellow-900">Geo-Blocked Access</p>
                           <p className="text-xs text-yellow-700 mt-1">
-                            Mainnet pools are geo-blocked. Try <a href="/testnet" className="underline font-medium">testnet demo</a> to see full functionality with real Blend pools.
+                            Mainnet pools are geo-restricted in many regions. Try our <a href="/testnet" className="underline font-medium">demo environment</a> to explore full functionality safely.
                           </p>
                         </div>
                       </div>

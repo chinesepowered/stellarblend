@@ -82,8 +82,8 @@ export function PoolInfo() {
           {isMainnet && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-md mx-auto">
               <p className="text-sm text-yellow-800">
-                <strong>For Judges:</strong> Mainnet pools are geo-blocked in many regions. 
-                Try the <a href="/testnet" className="underline font-medium">testnet demo</a> to see full functionality with real Blend pools.
+                Mainnet pools are geo-restricted in many regions. 
+                Try our <a href="/testnet" className="underline font-medium">demo environment</a> to explore full functionality safely.
               </p>
             </div>
           )}
@@ -99,12 +99,12 @@ export function PoolInfo() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-xl font-bold text-gray-900">
-              {isMainnet ? 'Available Blend Pools' : 'Demo Blend Pools'}
+              {isMainnet ? 'Available Blend Pools' : 'Blend Pools (Demo)'}
             </h2>
             <p className="text-gray-600">
               {isMainnet 
-                ? 'Real pools deployed on Stellar mainnet' 
-                : 'Demo data showcasing Blend functionality'
+                ? 'Production pools deployed on Stellar mainnet' 
+                : 'Demo environment showcasing Blend functionality'
               }
             </p>
           </div>
@@ -127,33 +127,33 @@ export function PoolInfo() {
                 Unable to access mainnet Blend pools due to geo-restrictions.
               </p>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-lg mx-auto text-left">
-                <h4 className="font-semibold text-blue-900 mb-2">Access Limitations</h4>
+                <h4 className="font-semibold text-blue-900 mb-2">Production Environment</h4>
                 <ul className="text-sm text-blue-800 space-y-2">
-                  <li>• <strong>Official UI geo-blocked:</strong> mainnet.blend.capital has regional restrictions</li>
+                  <li>• <strong>Geo-restrictions:</strong> Official UI has regional access limitations</li>
                   <li>• <strong>Protocol is live:</strong> Core Blend contracts are deployed and functional</li>
-                  <li>• <strong>Testnet available:</strong> Full functionality accessible on testnet</li>
-                  <li>• <strong>Alternative access:</strong> Deploy your own UI or use <a href="https://github.com/blend-capital/blend-utils" target="_blank" rel="noopener noreferrer" className="underline font-medium hover:text-blue-900">blend-utils</a></li>
+                  <li>• <strong>Demo available:</strong> Full functionality accessible in test environment</li>
+                  <li>• <strong>Alternative access:</strong> Deploy your own UI using <a href="https://github.com/blend-capital/blend-utils" target="_blank" rel="noopener noreferrer" className="underline font-medium hover:text-blue-900">blend-utils</a></li>
                 </ul>
                 <div className="mt-3 pt-3 border-t border-blue-200">
-                  <h5 className="font-medium text-blue-900 mb-1">For Judges & Users:</h5>
+                  <h5 className="font-medium text-blue-900 mb-1">Demo Environment Benefits:</h5>
                   <ul className="text-xs text-blue-700 space-y-1">
-                    <li>• Testnet has real Blend pools and full functionality</li>
-                    <li>• All features work identically to mainnet</li>
+                    <li>• Access to real Blend functionality without restrictions</li>
                     <li>• Safe testing environment with no real funds at risk</li>
+                    <li>• Complete feature exploration and interaction testing</li>
                   </ul>
                 </div>
               </div>
               <div className="mt-4">
                 <a href="/testnet" className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors">
                   <TestTube className="w-4 h-4 mr-2" />
-                  Try Testnet Demo
+                  Explore Demo Environment
                 </a>
               </div>
             </>
           ) : (
             <>
               <TestTube className="w-12 h-12 text-blue-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Demo Pools Available</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Demo Environment Loading</h3>
               <p className="text-gray-600">
                 Demo pools are temporarily unavailable. Please try again later.
               </p>
@@ -169,12 +169,12 @@ export function PoolInfo() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-xl font-bold text-gray-900">
-            {isMainnet ? 'Available Blend Pools' : 'Demo Blend Pools'}
+            {isMainnet ? 'Available Blend Pools' : 'Blend Pools (Demo)'}
           </h2>
           <p className="text-gray-600">
             {isMainnet 
-              ? 'Real pools deployed on Stellar mainnet' 
-              : 'Demo data showcasing Blend functionality'
+              ? 'Production pools deployed on Stellar mainnet' 
+              : 'Demo environment showcasing Blend functionality'
             }
           </p>
         </div>
@@ -195,10 +195,10 @@ export function PoolInfo() {
             <div className="flex items-start space-x-3">
               <Globe className="w-5 h-5 text-green-600 mt-0.5" />
               <div>
-                <h3 className="text-sm font-semibold text-green-900 mb-1">Real Mainnet Pools</h3>
+                <h3 className="text-sm font-semibold text-green-900 mb-1">Production Environment</h3>
                 <p className="text-sm text-green-700">
-                  These are actual deployed Blend pools with real liquidity on Stellar mainnet. 
-                  You can interact with them using real funds.
+                  These are live Blend pools with real liquidity on Stellar mainnet. 
+                  Interactions involve real funds and blockchain transactions.
                 </p>
               </div>
             </div>
@@ -210,13 +210,13 @@ export function PoolInfo() {
             <div className="flex items-start space-x-3">
               <TestTube className="w-5 h-5 text-blue-600 mt-0.5" />
               <div>
-                <h3 className="text-sm font-semibold text-blue-900 mb-1">Demo Mode</h3>
+                <h3 className="text-sm font-semibold text-blue-900 mb-1">Demo Environment</h3>
                 <p className="text-sm text-blue-700 mb-2">
-                  Currently showing demo data to showcase Blend functionality. 
-                  No real funds are at risk in testnet mode.
+                  You're currently exploring our demo environment with simulated data. 
+                  No real funds are at risk.
                 </p>
                 <p className="text-xs text-blue-600">
-                  To deploy real pools: <a href="https://github.com/blend-capital/blend-utils" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-800">Use blend-utils</a>
+                  Deploy real pools using: <a href="https://github.com/blend-capital/blend-utils" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-800">blend-utils</a>
                 </p>
               </div>
             </div>
