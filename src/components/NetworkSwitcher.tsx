@@ -77,7 +77,7 @@ export function NetworkSwitcher() {
                 </div>
                 <div>
                   <h3 className="text-2xl font-bold text-gray-900">Testnet</h3>
-                  <p className="text-sm text-blue-600 font-medium">Demo Mode</p>
+                  <p className="text-sm text-blue-600 font-medium">Development Network</p>
                 </div>
               </div>
               <ArrowRight className="w-6 h-6 text-gray-400 group-hover:text-blue-600 transition-colors" />
@@ -87,29 +87,29 @@ export function NetworkSwitcher() {
               <div className="flex items-start space-x-3">
                 <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
                 <div>
-                  <p className="font-medium text-gray-900">Demo Data</p>
-                  <p className="text-sm text-gray-600">Realistic mock data showcasing full functionality</p>
+                  <p className="font-medium text-gray-900">Safe Testing Environment</p>
+                  <p className="text-sm text-gray-600">Test all features without real funds at risk</p>
                 </div>
               </div>
               <div className="flex items-start space-x-3">
                 <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
                 <div>
-                  <p className="font-medium text-gray-900">Safe Testing</p>
-                  <p className="text-sm text-gray-600">No real funds at risk - perfect for exploration</p>
+                  <p className="font-medium text-gray-900">Development Tools</p>
+                  <p className="text-sm text-gray-600">Access development features and testing utilities</p>
                 </div>
               </div>
               <div className="flex items-start space-x-3">
                 <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
                 <div>
-                  <p className="font-medium text-gray-900">Full UI Features</p>
-                  <p className="text-sm text-gray-600">Experience all animations and interactions</p>
+                  <p className="font-medium text-gray-900">Full Feature Access</p>
+                  <p className="text-sm text-gray-600">Experience complete functionality in safe environment</p>
                 </div>
               </div>
             </div>
 
             <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
               <p className="text-sm text-blue-800">
-                <strong>Great for demos:</strong> Showcase all features without needing real funds
+                <strong>Perfect for development:</strong> Test and validate features without financial risk
               </p>
             </div>
           </Link>

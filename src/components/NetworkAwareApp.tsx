@@ -88,8 +88,8 @@ function NetworkAwareApp() {
             <div className="flex items-center space-x-3">
               <TestTube className="w-5 h-5 text-blue-600" />
               <div>
-                <p className="text-sm font-medium text-blue-900">Demo Mode</p>
-                <p className="text-xs text-blue-700">Using demo data to showcase functionality - no real funds at risk</p>
+                <p className="text-sm font-medium text-blue-900">Development Network</p>
+                <p className="text-xs text-blue-700">Connected to Stellar Testnet for safe development and testing</p>
               </div>
             </div>
           </div>

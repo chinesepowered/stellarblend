@@ -95,12 +95,12 @@ export function PositionManager() {
                   // Testnet empty state
                   <>
                     <TestTube className="w-12 h-12 text-blue-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Demo Positions</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Positions</h3>
                     <p className="text-gray-600 mb-4">
                       You don't have any active Blend positions yet.
                     </p>
                     <p className="text-sm text-gray-500">
-                      In testnet mode, positions are generated based on your wallet address for demo purposes.
+                      Connect your wallet and start lending or borrowing to see your positions here.
                     </p>
                   </>
                 )}

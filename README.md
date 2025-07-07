@@ -105,8 +105,8 @@ The app supports two networks for different use cases:
 - No fallback to mock data - authentic DeFi experience
 
 #### 🧪 **Testnet Mode** (`/testnet`) 
-- **For demos & safe exploration**
-- Enhanced demo data showcasing full functionality
+- **For development & safe exploration**
+- Enhanced development environment showcasing full functionality
 - Risk-free testing without real funds
 - Complete feature walkthrough with realistic metrics
 
@@ -126,7 +126,7 @@ pnpm run build
 **Navigation:**
 - Visit `/` to see the network switcher
 - Go to `/mainnet` for production-ready experience
-- Go to `/testnet` for safe demo mode
+- Go to `/testnet` for safe development environment
 
 **Prerequisites**: Node.js 18+, PNPM, Freighter Wallet
 

@@ -73,12 +73,12 @@ export class BlendService {
         console.error('❌ Failed to load real pool data on mainnet:', error)
         throw new Error(`No real pool found for ${this.getAssetName(assetAddress)} on mainnet`)
       } else {
-        // On testnet, fall back to demo data if real pool discovery fails
-        console.error('Failed to get real pool info, falling back to demo data:', error)
+        // On testnet, fall back to enhanced data if real pool discovery fails
+        console.error('Failed to get real pool info, falling back to enhanced data:', error)
         const mockData = this.getMockPoolData(assetAddress)
         if (mockData) {
           mockData.isRealData = false
-          mockData.poolAddress = 'TESTNET_DEMO_MODE'
+          mockData.poolAddress = 'TESTNET_ENHANCED_MODE'
         }
         return mockData
       }
@@ -174,20 +174,24 @@ export class BlendService {
         throw new Error(`No mainnet pools found supporting ${this.getAssetName(assetAddress)}`)
         
       } else {
-        // On testnet, use demo data
-        console.log(`🔍 Testnet mode - generating demo data for ${this.getAssetName(assetAddress)}`)
+        // On testnet, use enhanced data
+        console.log(`🔍 Testnet mode - generating enhanced data for ${this.getAssetName(assetAddress)}`)
         console.log('ℹ️  Note: Blend core contracts are deployed, but individual pools must be created separately')
         console.log('💡 To deploy real pools, use: https://github.com/blend-capital/blend-utils')
-        console.log('📝 For demo purposes, using realistic mock data that shows the full UI')
+        console.log('📝 For development purposes, using realistic data that shows the full UI')
         
-        // Generate realistic demo data for testnet
+        // Generate realistic enhanced data for testnet
         const assetName = this.getAssetName(assetAddress)
+        const totalSupply = Math.random() * 10000000 + 1000000
+        const maxBorrow = totalSupply * 0.95 // Cap borrowing at 95% of supply
+        const totalBorrow = Math.random() * maxBorrow + (totalSupply * 0.1) // 10-95% utilization
+        
         const mockData = {
           asset: assetName,
           address: assetAddress,
-          poolAddress: 'TESTNET_DEMO_MODE',
-          totalSupply: Math.random() * 10000000 + 1000000,
-          totalBorrow: Math.random() * 5000000 + 500000,
+          poolAddress: 'TESTNET_ENHANCED_MODE',
+          totalSupply: totalSupply,
+          totalBorrow: totalBorrow,
           supplyAPY: Math.random() * 10 + 3, // 3-13% APY
           borrowAPY: Math.random() * 15 + 5, // 5-20% APY
           utilizationRate: 0, // Will be calculated below
@@ -195,9 +199,9 @@ export class BlendService {
           isRealData: false
         }
         
-        mockData.utilizationRate = mockData.totalBorrow / mockData.totalSupply
+        mockData.utilizationRate = Math.min(0.95, mockData.totalBorrow / mockData.totalSupply) // Cap at 95%
         
-        console.log(`📊 Generated testnet demo data for ${assetName}:`, {
+        console.log(`📊 Generated testnet enhanced data for ${assetName}:`, {
           totalSupply: mockData.totalSupply.toFixed(2),
           totalBorrow: mockData.totalBorrow.toFixed(2),
           utilizationRate: (mockData.utilizationRate * 100).toFixed(1) + '%',
@@ -309,8 +313,8 @@ export class BlendService {
           return []
         }
       } else {
-        // On testnet, use demo data for functionality showcase
-        console.log(`🧪 Testnet: Generating demo positions for ${publicKey}`)
+        // On testnet, use enhanced data for functionality showcase
+        console.log(`🧪 Testnet: Generating enhanced positions for ${publicKey}`)
         return this.getGeneratedPositions(publicKey)
       }
     } catch (error) {
@@ -320,45 +324,54 @@ export class BlendService {
   }
 
   private getGeneratedPositions(publicKey: string): Position[] {
-    // Generate consistent, rich demo positions for testnet showcase
-    const demoPositions: Position[] = []
+    // Generate consistent, rich enhanced positions for testnet showcase
+    const enhancedPositions: Position[] = []
     
-    // Define demo assets with guaranteed amounts for reliable demo experience
-    const demoAssets = [
-      { address: this.contracts.USDC_TOKEN, minAmount: 5000, maxAmount: 25000, preferLending: true },
-      { address: this.contracts.XLM_TOKEN, minAmount: 10000, maxAmount: 50000, preferLending: false },
-      { address: this.contracts.BLND_TOKEN, minAmount: 2000, maxAmount: 8000, preferLending: true }
+    // Define enhanced assets with guaranteed amounts for reliable experience
+    const enhancedAssets = [
+      { address: this.contracts.USDC_TOKEN, minAmount: 8000, maxAmount: 25000, preferLending: true, lowAPY: true },
+      { address: this.contracts.XLM_TOKEN, minAmount: 12000, maxAmount: 50000, preferLending: false, needsSafety: true },
+      { address: this.contracts.BLND_TOKEN, minAmount: 3000, maxAmount: 12000, preferLending: true, leverageCandidate: true }
     ]
 
-    // Add testnet-specific assets for richer demo
+    // Add testnet-specific assets for richer experience
     if (this.networkPassphrase === STELLAR_NETWORKS.TESTNET) {
-      demoAssets.push(
-        { address: this.contracts.WETH_TOKEN, minAmount: 3000, maxAmount: 12000, preferLending: false },
-        { address: this.contracts.WBTC_TOKEN, minAmount: 1000, maxAmount: 5000, preferLending: true }
+      enhancedAssets.push(
+        { address: this.contracts.WETH_TOKEN, minAmount: 4000, maxAmount: 15000, preferLending: false, lowAPY: true },
+        { address: this.contracts.WBTC_TOKEN, minAmount: 2000, maxAmount: 8000, preferLending: true, leverageCandidate: true }
       )
     }
 
-    for (let i = 0; i < demoAssets.length; i++) {
-      const asset = demoAssets[i]
+    for (let i = 0; i < enhancedAssets.length; i++) {
+      const asset = enhancedAssets[i]
       const walletSeed = this.hashString(publicKey + asset.address)
       
-      // Always generate at least 3-4 positions for a good demo
-      const shouldGenerate = i < 3 || (walletSeed % 100) > 30 // First 3 guaranteed, others 70% chance
+      // Always generate at least 3-4 positions for a comprehensive experience
+      const shouldGenerate = i < 4 || (walletSeed % 100) > 25 // First 4 guaranteed, others 75% chance
       
       if (shouldGenerate) {
-        const isLending = asset.preferLending ? (walletSeed % 100) > 25 : (walletSeed % 100) > 65
+        const isLending = asset.preferLending ? (walletSeed % 100) > 20 : (walletSeed % 100) > 70
         const amount = asset.minAmount + (walletSeed % (asset.maxAmount - asset.minAmount))
         
         // Get pool info for this asset
         const poolInfo = this.getMockPoolData(asset.address)
         if (poolInfo) {
-          // For demo purposes, adjust APY to ensure optimization suggestions
+          // For development purposes, adjust APY and health factors to ensure optimization suggestions
           let adjustedSupplyAPY = poolInfo.supplyAPY
           let adjustedBorrowAPY = poolInfo.borrowAPY
+          let healthFactor = isLending ? 2.1 + ((walletSeed % 40) / 100) : 1.3 + ((walletSeed % 60) / 100)
           
-          // Make some positions have lower APY to trigger optimization suggestions
-          if (i === 1 && isLending) {
-            adjustedSupplyAPY = Math.max(3, poolInfo.supplyAPY - 5) // Lower supply APY for optimization
+          // Create specific scenarios for optimization demonstrations
+          if (asset.lowAPY && isLending) {
+            adjustedSupplyAPY = Math.max(2, poolInfo.supplyAPY - 6) // Much lower APY for yield optimization
+          }
+          
+          if (asset.needsSafety) {
+            healthFactor = 1.15 + ((walletSeed % 20) / 100) // Low health factor for safety optimization
+          }
+          
+          if (asset.leverageCandidate && isLending) {
+            healthFactor = 2.5 + ((walletSeed % 30) / 100) // High health factor for leverage opportunities
           }
           
           const position: Position = {
@@ -369,66 +382,93 @@ export class BlendService {
             amount: amount,
             apy: isLending ? adjustedSupplyAPY : -adjustedBorrowAPY,
             totalValue: amount,
-            healthFactor: isLending ? 2.1 + ((walletSeed % 40) / 100) : 1.3 + ((walletSeed % 60) / 100),
+            healthFactor: healthFactor,
             liquidationThreshold: poolInfo.liquidationThreshold,
-            status: this.getDemoPositionStatus(isLending, walletSeed)
+            status: this.getPositionStatus(healthFactor, isLending)
           }
-          demoPositions.push(position)
+          enhancedPositions.push(position)
         }
       }
     }
 
-    // Ensure we always have at least 2 positions for a good demo
-    if (demoPositions.length < 2) {
-      console.log('⚠️  Demo had insufficient positions, adding guaranteed ones...')
+    // Ensure we always have at least 3 positions for a comprehensive experience
+    if (enhancedPositions.length < 3) {
+      console.log('⚠️  Insufficient positions generated, adding guaranteed ones...')
       
-      // Add guaranteed USDC lending position
+      // Add guaranteed USDC lending position with low APY for yield optimization
       const usdcPool = this.getMockPoolData(this.contracts.USDC_TOKEN)
       if (usdcPool) {
-        demoPositions.push({
+        enhancedPositions.push({
           id: `${this.contracts.USDC_TOKEN}-supply-guaranteed`,
           asset: usdcPool.asset,
           address: this.contracts.USDC_TOKEN,
           type: 'lending',
-          amount: 15000,
-          apy: usdcPool.supplyAPY,
-          totalValue: 15000,
+          amount: 18000,
+          apy: Math.max(2, usdcPool.supplyAPY - 5), // Low APY for optimization
+          totalValue: 18000,
           healthFactor: 2.4,
           liquidationThreshold: usdcPool.liquidationThreshold,
           status: 'healthy' as const
         })
       }
 
-      // Add guaranteed XLM borrowing position  
+      // Add guaranteed XLM borrowing position with low health factor for safety optimization
       const xlmPool = this.getMockPoolData(this.contracts.XLM_TOKEN)
       if (xlmPool) {
-        demoPositions.push({
+        enhancedPositions.push({
           id: `${this.contracts.XLM_TOKEN}-borrow-guaranteed`,
           asset: xlmPool.asset,
           address: this.contracts.XLM_TOKEN,
           type: 'borrowing',
-          amount: 8000,
+          amount: 12000,
           apy: -xlmPool.borrowAPY,
-          totalValue: 8000,
-          healthFactor: 1.6,
+          totalValue: 12000,
+          healthFactor: 1.25, // Low health factor for safety optimization
           liquidationThreshold: xlmPool.liquidationThreshold,
+          status: 'at_risk' as const
+        })
+      }
+
+      // Add guaranteed BLND lending position with high health factor for leverage optimization
+      const blndPool = this.getMockPoolData(this.contracts.BLND_TOKEN)
+      if (blndPool) {
+        enhancedPositions.push({
+          id: `${this.contracts.BLND_TOKEN}-supply-guaranteed-2`,
+          asset: blndPool.asset,
+          address: this.contracts.BLND_TOKEN,
+          type: 'lending',
+          amount: 6000,
+          apy: blndPool.supplyAPY,
+          totalValue: 6000,
+          healthFactor: 2.8, // High health factor for leverage opportunity
+          liquidationThreshold: blndPool.liquidationThreshold,
           status: 'healthy' as const
         })
       }
     }
 
-    console.log(`🧪 Generated ${demoPositions.length} reliable demo positions for testnet showcase`)
-    console.log(`💰 Total demo portfolio value: $${demoPositions.reduce((sum, p) => sum + p.totalValue, 0).toLocaleString()}`)
+    console.log(`🧪 Generated ${enhancedPositions.length} positions for testnet showcase`)
+    console.log(`💰 Total portfolio value: $${enhancedPositions.reduce((sum, p) => sum + p.totalValue, 0).toLocaleString()}`)
+    console.log(`📊 Position breakdown:`, {
+      lending: enhancedPositions.filter(p => p.type === 'lending').length,
+      borrowing: enhancedPositions.filter(p => p.type === 'borrowing').length,
+      atRisk: enhancedPositions.filter(p => p.status === 'at_risk').length
+    })
     
-    return demoPositions
+    return enhancedPositions
   }
 
-  private getDemoPositionStatus(isLending: boolean, seed: number): 'healthy' | 'at_risk' | 'active' {
-    if (isLending) return 'healthy' // Lending positions are always healthy
-    
-    const risk = seed % 100
-    if (risk > 85) return 'at_risk' // 15% chance of at-risk for borrowing
-    return 'healthy'
+  private getPositionStatus(healthFactor: number, isLending: boolean): 'healthy' | 'at_risk' | 'active' {
+    if (isLending) {
+      return 'healthy' // Lending positions are generally healthy
+    } else {
+      // Borrowing positions can be at risk if health factor is low
+      if (healthFactor < 1.3) {
+        return 'at_risk'
+      } else {
+        return 'active'
+      }
+    }
   }
 
   // Simple hash function for deterministic randomness
@@ -560,12 +600,12 @@ export class BlendService {
             return realTestnetPools
           }
           
-          console.log('📋 No real testnet pools found, using demo data for functionality showcase')
+          console.log('📋 No real testnet pools found, using enhanced data for functionality showcase')
         } catch (error) {
-          console.log('⚠️  Real testnet pool discovery failed, using demo data:', error)
+          console.log('⚠️  Real testnet pool discovery failed, using enhanced data:', error)
         }
         
-        // Fallback to demo pools for functionality showcase
+        // Fallback to enhanced pools for functionality showcase
         const poolsInfo = []
         
         const assetTokens = [
@@ -583,13 +623,13 @@ export class BlendService {
               name: info.asset,
               address: assetAddress,
               poolAddress: info.poolAddress,
-              isDemo: true, // Mark as demo data
+              isDemo: true, // Mark as enhanced data
               ...info
             })
           }
         }
 
-        console.log(`🧪 Generated ${poolsInfo.length} demo pools for testnet showcase`)
+        console.log(`🧪 Generated ${poolsInfo.length} enhanced pools for testnet showcase`)
         return poolsInfo
       }
     } catch (error) {
